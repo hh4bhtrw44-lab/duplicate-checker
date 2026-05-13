@@ -1489,7 +1489,7 @@
             showDataPasswordModal('exportExcel', null);
         }
         async function exportExcelConfirm(pwd) {
-            const pwd = document.getElementById('dataPasswordInput').value;
+            var pwd = pwd || window._dataPassword || document.getElementById('dataPasswordInput').value;
             try {
                 const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
                 if (!res.ok) { showToast('导出失败', 'error'); return; }
