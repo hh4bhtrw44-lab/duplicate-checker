@@ -429,7 +429,7 @@ def api_fix_customer_data():
         name = (r['name'] or '').strip()
         phone = (r['phone'] or '').strip()
 
-        # 情况1：电话栏里混了姓名
+        # Case 1: phone field mixed with name
         if phone:
             parts = re_mod.split(r'[\s\t,，|;；]+', phone)
             phone_parts = []
@@ -454,7 +454,7 @@ def api_fix_customer_data():
                 db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (name_parts[0], '', cid))
                 fixed += 1
 
-        # 情况2：姓名栏里混了电话
+        # Case 2: name field mixed with phone numbers - extract digits to phone
         if name:
             parts = re_mod.split(r'[\s\t,，|;；]+', name)
             phone_parts = []
@@ -463,23 +463,19 @@ def api_fix_customer_data():
                 p = p.strip()
                 if not p:
                     continue
-                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
-                    phone_parts.append(p)
+                digit_only = re_mod.sub(r'[\+\-\s\(\)]', '', p)
+                if digit_only.isdigit() and len(digit_only) >= 5:
+                    phone_parts.append(digit_only)
                 else:
                     name_parts.append(p)
 
-            if phone_parts and name_parts:
-                new_name = ' '.join(name_parts)
+            if phone_parts:
+                new_name = ' '.join(name_parts) if name_parts else ''
                 existing_phone = db.execute('SELECT phone FROM customers WHERE id=?', (cid,)).fetchone()['phone'] or ''
                 new_phone = clean_phone((existing_phone + ' ' + ' '.join(phone_parts)).strip())
-                if existing_phone and existing_phone == new_phone:
-                    continue
-                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
-                fixed += 1
-
-    db.commit()
-    return jsonify({'ok': True, 'fixed': fixed, 'message': f'已修复 {fixed} 条数据'})
-
+                if new_name != name:
+                    db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+                    fixed += 1
 @app.route('/api/customers/quick-add', methods=['POST'])
 @login_required
 def api_quick_add():
