@@ -932,24 +932,22 @@ def api_import_customers():
                     if len(test_parts) >= 2:
                         parts = test_parts
                 
-                # 最后尝试单空格（但要排除电话号码中间的空格）
+                # 最后尝试单空格：识别数字段并自动合并为电话
                 if parts is None:
                     test_parts = line.split()
                     if len(test_parts) >= 2:
-                        # 判断第一个是不是电话号码格式（包含+号或纯数字）
-                        first = test_parts[0].strip()
-                        if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first.replace(' ', '')):
-                            parts = test_parts
+                        phone_segs = []
+                        name_segs = []
+                        for p in test_parts:
+                            pd = re.sub(r'[\+\-\s\(\)]', '', p.strip())
+                            if pd and pd.isdigit() and len(pd) > 0:
+                                phone_segs.append(p.strip())
+                            else:
+                                name_segs.append(p.strip())
+                        if phone_segs:
+                            parts = [' '.join(name_segs)] + phone_segs
                         else:
-                            # 可能有电话在第一列的情况，但也要考虑空格分割
-                            for i, p in enumerate(test_parts):
-                                p = p.strip()
-                                if re.match(r'^[\+\d][\d\s\-\(\)]{6,}$', p.replace(' ', '')) and i > 0:
-                                    # 在电话位置分割
-                                    parts = [' '.join(test_parts[:i]), p] + test_parts[i+1:]
-                                    break
-                            if parts is None:
-                                parts = [line]  # 无法智能分割，整行当姓名
+                            parts = [line]
 
                 if parts is None:
                     parts = [line]
@@ -957,7 +955,20 @@ def api_import_customers():
                 if len(parts) >= 2:
                     first = parts[0].strip()
                     second = parts[1].strip()
-                    if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first):
+                    # 智能识别电话：从所有部分中找出电话，其余作为姓名
+                    all_parts = [parts[0].strip()] + [parts[i].strip() for i in range(1, len(parts))]
+                    phone_detected = None
+                    name_detected = []
+                    for p in all_parts:
+                        pd = re.sub(r'[\+\-\s\(\)]', '', p)
+                        if pd and pd.isdigit() and len(pd) >= 5:
+                            phone_detected = p
+                        else:
+                            name_detected.append(p)
+                    if phone_detected:
+                        record['电话'] = ''.join([p for p in all_parts if re.sub(r'[\+\-\s\(\)]', '', p).isdigit() and len(re.sub(r'[\+\-\s\(\)]', '', p)) >= 5])
+                        record['姓名'] = ' '.join([p for p in all_parts if not (re.sub(r'[\+\-\s\(\)]', '', p).isdigit() and len(re.sub(r'[\+\-\s\(\)]', '', p)) >= 5)])
+                    elif re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first):
                         record['电话'] = first
                         record['姓名'] = second
                     else:
