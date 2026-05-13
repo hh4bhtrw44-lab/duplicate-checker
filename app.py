@@ -35,7 +35,7 @@ if not os.path.exists(DATA_DIR):
 DB_PATH = os.path.join(DATA_DIR, 'data.db')
 
 # 删除/导出/导入数据密码（不同于登录密码）
-DATA_PASSWORD = 'admin@data789'
+DATA_PASSWORD = 'sufahui520'
 
 # 迁移旧数据
 
