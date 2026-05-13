@@ -7,10 +7,7 @@
     <link rel="icon" href="/static/caishen.jpg" type="image/jpeg">
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        .map-label { background: transparent !important; border: none !important; box-shadow: none !important; color: #fff !important; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -348,8 +345,7 @@
             <div id="regionMapContainer">
                 <p style="color:#888; font-size:13px;">加载中...</p>
             </div>
-            <div id="regionMapDiv" style="height:420px; border-radius:10px; margin-top:12px; border:1px solid #e0e0e0; display:none;"></div>
-        </div>
+            </div>
     </div>
 
     <!-- Tab: Customers -->
@@ -723,7 +719,6 @@
                 document.getElementById('highDuplicate').textContent = data.high_duplicate;
             } catch { /* dashboard load failed */ }
             // 加载地图
-            setTimeout(function(){ loadRegionMap(); }, 500);
         }
 
         // ========== Customers CRUD ==========
