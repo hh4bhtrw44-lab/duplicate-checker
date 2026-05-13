@@ -326,6 +326,24 @@ def clean_phone(phone):
         return phone
     return re.sub(r'[\s\+\-\(\)]', '', phone)
 
+def detect_phone_region(phone):
+    """检测号码归属地，返回'国家 城市'格式的中文描述"""
+    if not phone:
+        return ''
+    try:
+        # 去掉+号再解析
+        clean = phone.replace('+', '')
+        parsed = phonenumbers.parse('+' + clean, None)
+        # 先试中文地区描述（城市/省份级别）
+        desc = geocoder.description_for_number(parsed, 'zh')
+        if desc:
+            return desc
+        # 如果没有城市级描述，返回国家名
+        country = geocoder.country_name_for_number(parsed, 'zh')
+        return country or ''
+    except:
+        return ''
+
 @app.route('/api/customers/fix-data', methods=['POST'])
 @login_required
 def api_fix_customer_data():
