@@ -677,7 +677,8 @@
                 const data = await res.json();
                 if (data.ok) {
                     document.getElementById('dataPasswordModal').style.display = 'none';
-                    // 执行对应操作
+                    // 保存密码供后续操作使用
+                    window._dataPassword = password;
                     const action = pendingAction;
                     pendingAction = null;
                     if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params);
@@ -1005,13 +1006,16 @@
             showDataPasswordModal('deleteCustomer', id);
         }
         async function deleteCustomerConfirm(id) {
+            const pwd = window._dataPassword || '';
             try {
-                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
-                if ((await res.json()).ok) {
+                const res = await fetch(`/api/customers/${id}?pwd=${encodeURIComponent(pwd)}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.ok) {
                     showToast('删除成功');
                     loadCustomers(currentPage);
-                }
+                } else { showToast('删除失败', 'error'); }
             } catch { showToast('网络错误', 'error'); }
+            window._dataPassword = '';
         }
 
         function toggleSelectAll() {
@@ -1028,17 +1032,19 @@
             showDataPasswordModal('batchDelete', ids);
         }
         async function batchDeleteConfirm() {
-            const ids = pendingAction ? pendingAction.params : [];
+            const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => parseInt(cb.value));
             if (ids.length === 0) return;
+            const pwd = window._dataPassword || '';
             try {
-                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids, pwd}) });
                 const result = await res.json();
                 if (result.ok) {
                     showToast(`成功删除 ${result.deleted} 个客户`);
                     document.getElementById('selectAll').checked = false;
                     loadCustomers(1);
-                }
+                } else { showToast('删除失败', 'error'); }
             } catch { showToast('网络错误', 'error'); }
+            window._dataPassword = '';
         }
 
         // ========== Check ==========
@@ -1318,6 +1324,7 @@
 
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('pwd', window._dataPassword || '');
 
             try {
                 const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
@@ -1348,7 +1355,7 @@
             showDataPasswordModal('exportExcel', null);
         }
         async function exportExcelConfirm() {
-            const pwd = document.getElementById('dataPasswordInput').value;
+            const pwd = window._dataPassword || '';
             try {
                 const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
                 if (!res.ok) { showToast('导出失败', 'error'); return; }
