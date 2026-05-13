@@ -1352,6 +1352,203 @@ def api_history():
     return jsonify([dict(r) for r in rows])
 
 # ========= 启动 =========
+
+
+@app.route('/api/analytics/region-map', methods=['GET'])
+@login_required
+def api_region_map():
+    """统计各归属地的客户数量，并返回GPS坐标"""
+    db = get_db()
+    rows = db.execute("""
+        SELECT phone_region, COUNT(*) as count
+        FROM customers
+        WHERE phone_region IS NOT NULL AND phone_region != ''
+        GROUP BY phone_region
+        ORDER BY count DESC
+    """).fetchall()
+    
+    regions = {}
+    coords = {}
+    for r in rows:
+        region = r['phone_region']
+        count = r['count']
+        regions[region] = count
+        c = get_coords_for_region(region)
+        if c:
+            coords[region] = {'lat': c[0], 'lng': c[1]}
+    
+    total_with_region = sum(regions.values())
+    total_without_region = db.execute("SELECT COUNT(*) FROM customers WHERE phone_region IS NULL OR phone_region = ''").fetchone()[0]
+    
+    return jsonify({
+        'regions': regions,
+        'coords': coords,
+        'total_with_region': total_with_region,
+        'total_without_region': total_without_region,
+        'total_customers': total_with_region + total_without_region
+    })
+
+
+
+
+@app.route('/api/analytics/check-stats', methods=['GET'])
+@login_required
+def api_check_stats():
+    """返回查重统计数据（从 check_logs 表取真实数据）"""
+    db = get_db()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # 今日查重次数
+    today_checks = db.execute(
+        "SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 总查重次数（用 check_history 表，因为 check_logs 可能不完整）
+    total_checks = db.execute("SELECT COUNT(*) FROM check_logs").fetchone()[0]
+    
+    # 今日重复数
+    today_dup = db.execute(
+        "SELECT COALESCE(SUM(duplicate_count), 0) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 总重复数
+    total_dup = db.execute(
+        "SELECT COALESCE(SUM(duplicate_count), 0) FROM check_logs"
+    ).fetchone()[0]
+    
+    # 平均重复率
+    avg_duplicate_rate = round((total_dup / total_checks * 100) if total_checks > 0 else 0, 2)
+    
+    # 今日查重记录次数（查询次数）
+    today_check_count = db.execute(
+        "SELECT COUNT(*) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 近7天趋势
+    weekly_trend = []
+    for i in range(6, -1, -1):
+        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        count = db.execute(
+            "SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?",
+            (day,)
+        ).fetchone()[0]
+        weekly_trend.append({"date": day, "count": count})
+    
+    return jsonify({
+        'today_checks': today_checks,
+        'total_checks': total_checks,
+        'today_duplicate': today_dup,
+        'total_duplicate': total_dup,
+        'avg_duplicate_rate': avg_duplicate_rate,
+        'today_check_count': today_check_count,
+        'weekly_trend': weekly_trend
+    })
+
+
+
+
+@app.route('/api/customers/batch-clean-duplicates', methods=['GET'])
+@login_required
+def api_batch_clean_duplicates():
+    """扫描所有重复客户（同名/同电话），返回重复组"""
+    db = get_db()
+    
+    # 按姓名分组查找重复
+    name_groups = db.execute("""
+        SELECT name, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+        FROM customers
+        WHERE name IS NOT NULL AND name != ''
+        GROUP BY name
+        HAVING cnt > 1
+    """).fetchall()
+    
+    # 按电话分组查找重复
+    phone_groups = db.execute("""
+        SELECT phone, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+        FROM customers
+        WHERE phone IS NOT NULL AND phone != ''
+        GROUP BY phone
+        HAVING cnt > 1
+    """).fetchall()
+    
+    groups = []
+    
+    for g in name_groups:
+        ids = [int(x) for x in g['ids'].split(',')]
+        customers = db.execute(
+            f"SELECT * FROM customers WHERE id IN ({','.join('?' * len(ids))})",
+            ids
+        ).fetchall()
+        groups.append({
+            'type': 'name',
+            'key': g['name'],
+            'count': g['cnt'],
+            'customers': [dict(c) for c in customers]
+        })
+    
+    for g in phone_groups:
+        ids = [int(x) for x in g['ids'].split(',')]
+        customers = db.execute(
+            f"SELECT * FROM customers WHERE id IN ({','.join('?' * len(ids))})",
+            ids
+        ).fetchall()
+        groups.append({
+            'type': 'phone',
+            'key': g['phone'],
+            'count': g['cnt'],
+            'customers': [dict(c) for c in customers]
+        })
+    
+    return jsonify({
+        'total_groups': len(groups),
+        'groups': groups
+    })
+
+@app.route('/api/customers/batch-clean-duplicates/action', methods=['POST'])
+@login_required
+def api_batch_clean_duplicates_action():
+    """执行批量清理操作"""
+    data = request.get_json()
+    action = data.get('action', '')  # 'keep_one' 或 'delete_all'
+    customer_ids = data.get('ids', [])
+    pwd = data.get('pwd', '')
+    
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误"}), 403
+    
+    if not customer_ids:
+        return jsonify({"error": "请选择客户"}), 400
+    
+    db = get_db()
+    
+    if action == 'keep_one':
+        # 保留第一个，删除其余
+        keep_id = customer_ids[0]
+        delete_ids = customer_ids[1:]
+        if delete_ids:
+            placeholders = ','.join('?' * len(delete_ids))
+            db.execute(f"DELETE FROM customers WHERE id IN ({placeholders})", delete_ids)
+            db.execute("DELETE FROM check_history WHERE customer1_id IN ({}) OR customer2_id IN ({})".format(
+                ','.join('?' * len(delete_ids)), ','.join('?' * len(delete_ids))),
+                delete_ids + delete_ids)
+    elif action == 'delete_all':
+        placeholders = ','.join('?' * len(customer_ids))
+        db.execute(f"DELETE FROM customers WHERE id IN ({placeholders})", customer_ids)
+        db.execute("DELETE FROM check_history WHERE customer1_id IN ({}) OR customer2_id IN ({})".format(
+            ','.join('?' * len(customer_ids)), ','.join('?' * len(customer_ids))),
+            customer_ids + customer_ids)
+    else:
+        return jsonify({"error": "无效的操作类型"}), 400
+    
+    db.commit()
+    return jsonify({"ok": True, "deleted": len(customer_ids) - (1 if action == 'keep_one' else 0)})
+
+
+
+
 if __name__ == '__main__':
     print("=" * 60)
     print("  🚀 客户查重管理系统 (完整版)")
