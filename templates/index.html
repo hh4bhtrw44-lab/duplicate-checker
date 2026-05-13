@@ -20,7 +20,7 @@
             color: #333;
         }
         .app-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
             color: white;
             padding: 14px 24px;
             display: flex;
@@ -52,8 +52,8 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-        .nav-tabs button:hover { color: #667eea; background: #f8f9ff; }
-        .nav-tabs button.active { color: #667eea; border-bottom-color: #667eea; }
+        .nav-tabs button:hover { color: #e63946; background: #f8f9ff; }
+        .nav-tabs button.active { color: #e63946; border-bottom-color: #e63946; }
 
         .tab-content { padding: 20px 24px; display: none; }
         .tab-content.active { display: block; }
@@ -81,7 +81,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
         }
-        .stat-card .number { font-size: 30px; font-weight: 700; color: #667eea; }
+        .stat-card .number { font-size: 30px; font-weight: 700; color: #e63946; }
         .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
 
         .btn {
@@ -94,7 +94,7 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-primary { background: #667eea; color: white; }
+        .btn-primary { background: #e63946; color: white; }
         .btn-primary:hover { background: #5a6fd6; }
         .btn-success { background: #27ae60; color: white; }
         .btn-success:hover { background: #219a52; }
@@ -112,7 +112,7 @@
         .btn-link {
             background: none;
             border: none;
-            color: #667eea;
+            color: #e63946;
             cursor: pointer;
             font-size: 13px;
             text-decoration: underline;
@@ -137,7 +137,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #e63946; }
         .form-group textarea { resize: vertical; min-height: 70px; }
         .form-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -171,7 +171,7 @@
             flex-wrap: wrap;
         }
         .search-bar input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .search-bar input:focus { border-color: #667eea; outline: none; }
+        .search-bar input:focus { border-color: #e63946; outline: none; }
         .search-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: white; }
 
         .pagination {
@@ -188,7 +188,7 @@
             cursor: pointer;
             font-size: 13px;
         }
-        .pagination span.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination span.active { background: #e63946; color: white; border-color: #e63946; }
         .pagination span:hover:not(.active) { background: #f0f0f0; }
 
         .modal-overlay {
@@ -274,8 +274,8 @@
             transition: all 0.2s;
             margin-bottom: 12px;
         }
-        .import-dropzone:hover { border-color: #667eea; background: #f8f9ff; }
-        .import-dropzone.dragover { border-color: #667eea; background: #eef0ff; }
+        .import-dropzone:hover { border-color: #e63946; background: #f8f9ff; }
+        .import-dropzone.dragover { border-color: #e63946; background: #eef0ff; }
         .import-dropzone p { color: #888; font-size: 14px; }
         .import-dropzone .icon { font-size: 40px; margin-bottom: 10px; }
 
@@ -353,8 +353,8 @@
 
     <!-- Tab: Customers -->
     <div id="tab-customers" class="tab-content">
-        <div class="card" style="border: 2px dashed #667eea; background: #f8f9ff;">
-            <h2 style="color:#667eea; margin-bottom:8px;">⚡ 快速添加</h2>
+        <div class="card" style="border: 2px dashed #e63946; background: #f8f9ff;">
+            <h2 style="color:#e63946; margin-bottom:8px;">⚡ 快速添加</h2>
             <p style="font-size:13px; color:#888; margin-bottom:12px;">粘贴客户信息，系统自动识别：电话号码→电话栏，其余内容→姓名栏。每行一个客户。</p>
             <div class="form-group">
                 <textarea id="quickAddText" rows="4" placeholder="每行输入一个客户信息，例如：
@@ -459,7 +459,7 @@
         <div class="card">
             <h2>查重统计</h2>
             <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:20px;">
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:18px; border-radius:12px; text-align:center;">
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#e63946,#c1121f); color:white; padding:18px; border-radius:12px; text-align:center;">
                     <div style="font-size:28px; font-weight:700;" id="csTodayChecks">0</div>
                     <div style="font-size:13px; opacity:0.8; margin-top:4px;">今日查重</div>
                 </div>
@@ -769,7 +769,7 @@
                     var pct = Math.round(count/max*100);
                     html += '<div style="margin:6px 0;"><span style="font-size:13px; min-width:80px; display:inline-block;">' + region + '</span>' +
                         '<div style="display:inline-block; width:60%; height:20px; background:#e8e8e8; border-radius:10px; margin:0 8px; vertical-align:middle;">' +
-                        '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:10px; text-align:right; line-height:20px; color:#fff; font-size:11px; padding-right:6px; box-sizing:border-box;">' + count + '</div></div>' +
+                        '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#e63946,#c1121f); border-radius:10px; text-align:right; line-height:20px; color:#fff; font-size:11px; padding-right:6px; box-sizing:border-box;">' + count + '</div></div>' +
                         '<span style="font-size:11px; color:#888;">' + Math.round(count/data.total_with_region*100) + '%</span></div>';
                 });
                 html += '</div>';
@@ -790,14 +790,14 @@
                     var isCN = region.indexOf('省') >= 0 || region.indexOf('市') >= 0 || region === '香港' || region === '澳门';
                     var marker = L.circleMarker([pt.lat, pt.lng], {
                         radius: radius,
-                        fillColor: isCN ? '#e91e63' : '#667eea',
+                        fillColor: isCN ? '#e91e63' : '#e63946',
                         color: '#fff',
                         weight: 2,
                         fillOpacity: 0.65
                     }).addTo(map);
                     var labelText = count >= 10000 ? (count/10000).toFixed(1) + '万' : count.toLocaleString();
                     marker.bindTooltip('<div style="font-weight:bold;font-size:11px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);">' + region + '<br>' + labelText + '</div>', {permanent:true,direction:'center',className:'map-label'});
-                    marker.bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style="color:#667eea;">' + count.toLocaleString() + '</strong><br>占比: ' + Math.round(count/data.total_with_region*100) + '%');
+                    marker.bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style="color:#e63946;">' + count.toLocaleString() + '</strong><br>占比: ' + Math.round(count/data.total_with_region*100) + '%');
                 });
                 var latlngs = coordEntries.map(function(e){return [data.coords[e[0]].lat, data.coords[e[0]].lng];});
                 var bounds = L.latLngBounds(latlngs);
@@ -897,7 +897,7 @@
             pg.appendChild(next);
             var jumpSpan = document.createElement('span');
             jumpSpan.style.cssText = 'display:flex; align-items:center; gap:4px; margin-left:6px; border:none; cursor:default;';
-            jumpSpan.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px; padding:4px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center;"> <button style="padding:4px 8px; border:1px solid #667eea; background:#667eea; color:white; border-radius:4px; cursor:pointer; font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px; color:#888; margin-left:2px;">共' + totalPages + '页</span>';
+            jumpSpan.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px; padding:4px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center;"> <button style="padding:4px 8px; border:1px solid #e63946; background:#e63946; color:white; border-radius:4px; cursor:pointer; font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px; color:#888; margin-left:2px;">共' + totalPages + '页</span>';
             pg.appendChild(jumpSpan);
             updateBatchDeleteBtn();
         }
@@ -1336,7 +1336,7 @@
                         datasets: [{
                             label: '新增客户',
                             data: counts,
-                            borderColor: '#667eea',
+                            borderColor: '#e63946',
                             backgroundColor: 'rgba(102,126,234,0.1)',
                             fill: true,
                             tension: 0.3,
@@ -1364,7 +1364,7 @@
                             label: '查重次数',
                             data: checkCounts,
                             backgroundColor: 'rgba(102,126,234,0.6)',
-                            borderColor: '#667eea',
+                            borderColor: '#e63946',
                             borderWidth: 1
                         }]
                     },
@@ -1542,7 +1542,7 @@
                         type: 'line',
                         data: {
                             labels: trend.map(function(d){return d.date.slice(5);}),
-                            datasets: [{label: '查重次数', data: trend.map(function(d){return d.count;}), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3}]
+                            datasets: [{label: '查重次数', data: trend.map(function(d){return d.count;}), borderColor: '#e63946', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3}]
                         },
                         options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
                     });
