@@ -681,13 +681,14 @@
                 const data = await res.json();
                 if (data.ok) {
                     document.getElementById('dataPasswordModal').style.display = 'none';
+                    window._dataPassword = password;
                     // 执行对应操作
                     const action = pendingAction;
                     pendingAction = null;
-                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params);
-                    else if (action.name === 'batchDelete') batchDeleteConfirm();
-                    else if (action.name === 'exportExcel') exportExcelConfirm();
-                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params);
+                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params, password);
+                    else if (action.name === 'batchDelete') batchDeleteConfirm(password);
+                    else if (action.name === 'exportExcel') exportExcelConfirm(password);
+                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params, password);
                 } else {
                     document.getElementById('dataPasswordError').style.display = 'block';
                 }
@@ -1044,9 +1045,10 @@
         }async function deleteCustomer(id) {
             showDataPasswordModal('deleteCustomer', id);
         }
-        async function deleteCustomerConfirm(id) {
+        async function deleteCustomerConfirm(id, pwd) {
             try {
-                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                pwd = pwd || window._dataPassword || '';
+                const res = await fetch(`/api/customers/${id}?pwd=${encodeURIComponent(pwd)}`, { method: 'DELETE' });
                 if ((await res.json()).ok) {
                     showToast('删除成功');
                     loadCustomers(currentPage);
@@ -1387,8 +1389,8 @@
         async function exportExcel() {
             showDataPasswordModal('exportExcel', null);
         }
-        async function exportExcelConfirm() {
-            const pwd = document.getElementById('dataPasswordInput').value;
+        async function exportExcelConfirm(pwd) {
+            pwd = pwd || document.getElementById('dataPasswordInput').value || window._dataPassword || '';
             var url = '/api/export/excel?pwd=' + encodeURIComponent(pwd);
             var df = document.getElementById('exportDateFrom') ? document.getElementById('exportDateFrom').value : '';
             var dt = document.getElementById('exportDateTo') ? document.getElementById('exportDateTo').value : '';
