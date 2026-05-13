@@ -28,11 +28,20 @@ else:
     with open(SECRET_KEY_FILE, 'w') as f:
         f.write(app.secret_key)
 
-# 持久化存储：优先使用 /app/data 目录
+# 持久化存储：优先使用 /app/data 目录（Railway Volume挂载点）
 DATA_DIR = '/app/data'
 if not os.path.exists(DATA_DIR):
     DATA_DIR = app.root_path
-app.config['DATABASE'] = os.path.join(DATA_DIR, 'data.db')
+DB_PATH = os.path.join(DATA_DIR, 'data.db')
+
+# 迁移旧数据：如果持久化目录有新的数据库且根目录有旧数据库则合并
+OLD_DB = os.path.join(app.root_path, 'data.db')
+if DATA_DIR != app.root_path and os.path.exists(OLD_DB) and not os.path.exists(DB_PATH):
+    import shutil
+    shutil.copy2(OLD_DB, DB_PATH)
+    print(f"✅ 已迁移数据文件到 {DB_PATH}")
+
+app.config['DATABASE'] = DB_PATH
 
 # ========= 数据库初始化 =========
 
@@ -523,19 +532,47 @@ def api_import_customers():
             # 尝试识别格式
             for line in lines:
                 record = {}
-                # 尝试按逗号/制表符/竖线分割
-                for sep in ['\t', ',', '|', '，', '	']:
-                    parts = line.split(sep)
-                    if len(parts) >= 2:
+                parts = None
+                
+                # 尝试按常见分隔符分割
+                for sep in ['\t', ',', '|', '，', ';', '；']:
+                    test_parts = line.split(sep)
+                    if len(test_parts) >= 2:
+                        parts = test_parts
                         break
-                else:
+                
+                # 如果常见分隔符都不行，尝试按空白分割（2个以上连续空格）
+                if parts is None:
+                    import re as re2
+                    test_parts = re2.split(r'\s{2,}', line)  # 2个以上空格
+                    if len(test_parts) >= 2:
+                        parts = test_parts
+                
+                # 最后尝试单空格（但要排除电话号码中间的空格）
+                if parts is None:
+                    test_parts = line.split()
+                    if len(test_parts) >= 2:
+                        # 判断第一个是不是电话号码格式（包含+号或纯数字）
+                        first = test_parts[0].strip()
+                        if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first.replace(' ', '')):
+                            parts = test_parts
+                        else:
+                            # 可能有电话在第一列的情况，但也要考虑空格分割
+                            for i, p in enumerate(test_parts):
+                                p = p.strip()
+                                if re.match(r'^[\+\d][\d\s\-\(\)]{6,}$', p.replace(' ', '')) and i > 0:
+                                    # 在电话位置分割
+                                    parts = [' '.join(test_parts[:i]), p] + test_parts[i+1:]
+                                    break
+                            if parts is None:
+                                parts = [line]  # 无法智能分割，整行当姓名
+
+                if parts is None:
                     parts = [line]
 
                 if len(parts) >= 2:
-                    # 智能识别：如果第一部分是纯数字或带+号，则视为电话号码
                     first = parts[0].strip()
                     second = parts[1].strip()
-                    # 判断是否为电话号码（纯数字、带+号、带-号、带空格的分段数字）
                     if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first):
                         record['电话'] = first
                         record['姓名'] = second
