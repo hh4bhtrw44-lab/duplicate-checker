@@ -945,7 +945,7 @@ def api_quick_check_all():
     for keyword in lines:
         keyword_like = f'%{keyword}%'
         rows = db.execute("""
-            SELECT id, name, phone, company
+            SELECT id, name, phone, company, created_at
             FROM customers
             WHERE name LIKE ? OR phone LIKE ?
             ORDER BY id DESC
@@ -967,6 +967,7 @@ def api_quick_check_all():
                 'phone': r['phone'],
                 'company': r['company'],
                 'match_fields': match_fields,
+                'created_at': r['created_at'],
             })
 
     return jsonify({
