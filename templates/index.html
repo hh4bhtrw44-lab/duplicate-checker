@@ -752,14 +752,62 @@
             const totalPages = Math.ceil(data.total / data.per_page);
             const pg = document.getElementById('customerPagination');
             pg.innerHTML = '';
-            for (let i = 1; i <= totalPages && i <= 20; i++) {
+
+            // 上一页
+            const prev = document.createElement('span');
+            prev.textContent = '‹';
+            prev.style.fontSize = '16px';
+            if (currentPage > 1) prev.onclick = () => loadCustomers(currentPage - 1);
+            else prev.style.color = '#ccc'; prev.style.cursor = 'default';
+            pg.appendChild(prev);
+
+            // 页码窗口
+            const maxVisible = 10;
+            let start = Math.max(1, currentPage - 4);
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+
+            if (start > 1) {
+                const first = document.createElement('span');
+                first.textContent = '1'; first.onclick = () => loadCustomers(1);
+                pg.appendChild(first);
+                if (start > 2) { const dots = document.createElement('span'); dots.textContent = '...'; dots.style.cursor = 'default'; dots.style.color = '#888'; pg.appendChild(dots); }
+            }
+            for (let i = start; i <= end; i++) {
                 const span = document.createElement('span');
                 span.textContent = i;
                 if (i === currentPage) span.classList.add('active');
                 span.onclick = () => loadCustomers(i);
                 pg.appendChild(span);
             }
-            updateBatchDeleteBtn();
+            if (end < totalPages) {
+                if (end < totalPages - 1) { const dots = document.createElement('span'); dots.textContent = '...'; dots.style.cursor = 'default'; dots.style.color = '#888'; pg.appendChild(dots); }
+                const last = document.createElement('span');
+                last.textContent = totalPages; last.onclick = () => loadCustomers(totalPages);
+                pg.appendChild(last);
+            }
+
+            // 下一页
+            const next = document.createElement('span');
+            next.textContent = '›';
+            next.style.fontSize = '16px';
+            if (currentPage < totalPages) next.onclick = () => loadCustomers(currentPage + 1);
+            else next.style.color = '#ccc'; next.style.cursor = 'default';
+            pg.appendChild(next);
+
+            // 跳转输入框
+            const jumpSpan = document.createElement('span');
+            jumpSpan.style.cssText = 'display:flex; align-items:center; gap:4px; margin-left:6px; border:none; cursor:default;';
+            jumpSpan.innerHTML = `<input id="pageJumpInput" type="number" min="1" max="${totalPages}" placeholder="页" style="width:50px; padding:4px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center;"> <button style="padding:4px 8px; border:1px solid #667eea; background:#667eea; color:white; border-radius:4px; cursor:pointer; font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px; color:#888; margin-left:2px;">共${totalPages}页</span>`;
+            pg.appendChild(jumpSpan);
+        }
+
+        function jumpToPage() {
+            const input = document.getElementById('pageJumpInput');
+            if (!input) return;
+            let p = parseInt(input.value);
+            const totalPages = Math.ceil(/* will be set from data */ 1);
+            if (p >= 1) loadCustomers(p);
         }
 
         function searchCustomers() {
