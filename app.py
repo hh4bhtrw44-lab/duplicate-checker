@@ -1,3 +1,4 @@
+"""八方来财客户查重系统 v3.0 - 全面修复版"""
 """八方来财 v2.1.3 - 地图+导出+快速添加修复"""
 #!/usr/bin/env python3
 """客户查重管理系统 - Flask + SQLite (完整功能版)"""
@@ -744,7 +745,29 @@ def api_export_excel():
         return jsonify({"error": "导出功能需要安装 openpyxl：pip install openpyxl"}), 500
 
     db = get_db()
-    customers = db.execute("SELECT * FROM customers ORDER BY id DESC").fetchall()
+        # 支持过滤参数
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    region = request.args.get('region', '')
+    search_keyword = request.args.get('search', '')
+    
+    query = "SELECT * FROM customers WHERE 1=1"
+    params = []
+    if start_date:
+        query += " AND created_at >= ?"
+        params.append(start_date + ' 00:00:00')
+    if end_date:
+        query += " AND created_at <= ?"
+        params.append(end_date + ' 23:59:59')
+    if region:
+        query += " AND phone_region = ?"
+        params.append(region)
+    if search_keyword:
+        query += " AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)"
+        kw = '%' + search_keyword + '%'
+        params.extend([kw, kw, kw])
+    query += " ORDER BY id DESC"
+    customers = db.execute(query, params).fetchall().fetchall()
 
     wb = openpyxl.Workbook()
     ws = wb.active
