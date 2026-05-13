@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        .map-label { background: transparent !important; border: none !important; box-shadow: none !important; color: #fff !important; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -760,7 +761,16 @@
                         color: '#fff',
                         weight: 2,
                         fillOpacity: 0.65
-                    }).addTo(map).bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style=\"color:#667eea;\">' + count.toLocaleString() + '</strong>');
+                    var marker = L.circleMarker([pt.lat, pt.lng], {
+                        radius: radius,
+                        fillColor: isCN ? '#e91e63' : '#667eea',
+                        color: '#fff',
+                        weight: 2,
+                        fillOpacity: 0.65
+                    }).addTo(map);
+                    var labelText = count >= 10000 ? (count/10000).toFixed(1) + '万' : count.toLocaleString();
+                    marker.bindTooltip('<div style="font-weight:bold;font-size:11px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);">' + region + '<br>' + labelText + '</div>', {permanent:true,direction:'center',className:'map-label'});
+                    marker.bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style="color:#667eea;">' + count.toLocaleString() + '</strong><br>占比: ' + Math.round(count/data.total_with_region*100) + '%');
                 });
                 var latlngs = coordEntries.map(function(e){return [data.coords[e[0]].lat, data.coords[e[0]].lng];});
                 var bounds = L.latLngBounds(latlngs);
