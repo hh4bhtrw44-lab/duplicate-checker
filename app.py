@@ -448,11 +448,6 @@ def api_quick_add():
         'ok': True, 'imported': imported, 'total': len(lines),
         'duplicates': all_duplicates
     })
-        except Exception as e:
-            errors.append(f'{name}: {str(e)[:30]}')
-
-    db.commit()
-    return jsonify({'ok': True, 'imported': imported, 'total': len(lines), 'errors': errors[:10]})
 
 @app.route('/api/customers', methods=['POST'])
 @login_required
