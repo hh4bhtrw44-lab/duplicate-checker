@@ -408,24 +408,48 @@ def api_quick_add():
             p = p.strip()
             if not p:
                 continue
-            # 强判断：去掉特殊字符后全是数字且>=5位 → 电话号码
-            clean_p = re.sub(r'[\+\-\s\(\)\.\/]', '', p)
-            if clean_p.isdigit() and len(clean_p) >= 5:
-                phone_parts.append(p)
-            elif p.isdigit() and len(p) >= 5:
-                phone_parts.append(p)
+            # 从每个部分中提取7位以上的数字序列作为电话
+            nums = re.findall(r'\d{7,}', p)
+            if nums:
+                phone_parts.append(nums[0])
+                # 剩下的文字部分（去掉数字和+号）
+                remaining = re.sub(r'\d{7,}', '', p, count=1).strip()
+                remaining = re.sub(r'^\+[\d]*\s*', '', remaining).strip()
+                remaining = re.sub(r'[\+\-\s\(\)]', '', remaining).strip()
+                if remaining:
+                    name_parts.append(remaining)
+            # 以+开头但没有7位以上数字的片段（如+86、+852）
+            elif p.startswith('+') and len(re.sub(r'\D', '', p)) <= 4:
+                # 这个可能是国际区号前缀，与下一个电话合并
+                # 先暂存，等到处理完所有部分再处理
+                if phone_parts:
+                    # 已有电话了，把+xx拼到第一个电话前面
+                    prefix = re.sub(r'[\+\s]', '', p)
+                    phone_parts[0] = prefix + phone_parts[0]
+                else:
+                    # 还没电话，存起来等后续
+                    phone_parts.append('PREFIX:' + p)
+            elif p.isdigit() or (p.startswith('+') and len(p) > 4):
+                name_parts.append(p)
             else:
                 name_parts.append(p)
 
-        # 如果没分出电话号码，从姓名里尝试提取
+        # 处理缓存的+前缀
+        new_phone = []
+        for p in phone_parts:
+            if p.startswith('PREFIX:'):
+                continue  # 等后面处理
+            new_phone.append(p)
+        phone_parts = new_phone
+
+        # 如果依然没分出电话号码，再从所有文字中提取
         if not phone_parts:
             combined = ''.join(name_parts)
-            # 尝试从字符串中提取数字序列（>=7位）
             nums = re.findall(r'\d{7,}', combined)
             if nums:
                 phone_parts = [nums[0]]
-                # 从姓名中移除提取的电话号码
                 new_name = re.sub(r'\d{7,}', '', combined, count=1).strip()
+                new_name = re.sub(r'[\+\-\s]', '', new_name).strip()
                 name_parts = [new_name] if new_name else []
 
         name = ' '.join(name_parts) if name_parts else ''
