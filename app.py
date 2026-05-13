@@ -34,6 +34,11 @@ if not os.path.exists(DATA_DIR):
     DATA_DIR = app.root_path
 DB_PATH = os.path.join(DATA_DIR, 'data.db')
 
+# 删除/导出/导入数据密码（不同于登录密码）
+DATA_PASSWORD = 'admin@data789'
+
+# 迁移旧数据
+
 # 迁移旧数据：如果持久化目录有新的数据库且根目录有旧数据库则合并
 OLD_DB = os.path.join(app.root_path, 'data.db')
 if DATA_DIR != app.root_path and os.path.exists(OLD_DB) and not os.path.exists(DB_PATH):
@@ -504,7 +509,7 @@ def api_detect_regions():
         region = ''
         try:
             parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
-            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+            region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
             pass
         if region:
@@ -558,7 +563,7 @@ def api_add_customer():
     if phone:
         try:
             parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
-            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+            region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
             pass
 
@@ -608,7 +613,7 @@ def api_update_customer(id):
     if phone:
         try:
             parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
-            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+            region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
             pass
     db.execute("UPDATE customers SET name=?, phone=?, email=?, company=?, notes=?, content=?, phone_region=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -619,6 +624,9 @@ def api_update_customer(id):
 @app.route('/api/customers/<int:id>', methods=['DELETE'])
 @login_required
 def api_delete_customer(id):
+    pwd = request.args.get('pwd', '') or (request.get_json(silent=True) or {}).get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法删除"}), 403
     db = get_db()
     db.execute("DELETE FROM customers WHERE id=?", (id,))
     db.execute("DELETE FROM check_history WHERE customer1_id=? OR customer2_id=?", (id, id))
@@ -630,6 +638,9 @@ def api_delete_customer(id):
 def api_batch_delete():
     data = request.get_json()
     ids = data.get('ids', [])
+    pwd = data.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法批量删除"}), 403
     if not ids:
         return jsonify({"error": "请选择要删除的客户"}), 400
     db = get_db()
@@ -638,11 +649,24 @@ def api_batch_delete():
     db.commit()
     return jsonify({"ok": True, "deleted": len(ids)})
 
+# ========= 验证数据操作密码 =========
+@app.route('/api/verify-data-password', methods=['POST'])
+@login_required
+def api_verify_data_password():
+    data = request.get_json()
+    pwd = data.get('pwd', '')
+    if pwd == DATA_PASSWORD:
+        return jsonify({'ok': True})
+    return jsonify({'ok': False}), 403
+
 # ========= 导出 Excel =========
 
 @app.route('/api/export/excel', methods=['GET'])
 @login_required
 def api_export_excel():
+    pwd = request.args.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法导出数据"}), 403
     try:
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -1184,7 +1208,8 @@ def api_quick_check():
     return jsonify({
         'keyword': keyword,
         'total': len(results),
-        'results': results
+        'results': results,
+        'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
 
@@ -1235,7 +1260,8 @@ def api_quick_check_all():
     return jsonify({
         'keywords_count': len(lines),
         'total': len(all_results),
-        'results': all_results
+        'results': all_results,
+        'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
 
