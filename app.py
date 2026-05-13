@@ -1,3 +1,4 @@
+# v2.0 - fix quick-add + map
 #!/usr/bin/env python3
 """客户查重管理系统 - Flask + SQLite (完整功能版)"""
 import re
