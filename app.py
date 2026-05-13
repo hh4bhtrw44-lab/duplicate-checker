@@ -503,10 +503,6 @@ def api_fix_customer_data():
 
 @app.route('/api/customers/detect-regions', methods=['POST'])
 @login_required
-
-
-
-
 def api_detect_regions():
     """批量检测电话归属地"""
     db = get_db()
