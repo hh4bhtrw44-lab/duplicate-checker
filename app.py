@@ -1377,6 +1377,12 @@ def api_history():
     """, (limit,)).fetchall()
     return jsonify([dict(r) for r in rows])
 
+
+
+
+
+
+
 # ========= 启动 =========
 
 
