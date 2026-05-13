@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客户查重系统</title>
+    <title>🧧 八方来财客户查重系统</title>
+    <link rel="icon" href="/static/caishen.jpg" type="image/jpeg">
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
+        .map-label { background: transparent !important; border: none !important; box-shadow: none !important; color: #fff !important; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -295,7 +299,10 @@
 </head>
 <body>
     <div class="app-header">
-        <h1>📋 客户查重管理系统</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <img src="/static/caishen.jpg" alt="财神爷" style="width:48px;height:48px;border-radius:10px;object-fit:cover;">
+            <h1 style="margin:0;">🧧 八方来财客户查重系统</h1>
+        </div>
         <div class="user-info">
             <span id="usernameDisplay"></span>
             <a onclick="showChangePassword()">修改密码</a>
@@ -308,7 +315,7 @@
         <button data-tab="tab-customers">👥 客户管理</button>
         <button data-tab="tab-check">🔍 查重</button>
         <button data-tab="tab-batch-check">📈 批量查重</button>
-        <button data-tab="tab-history">📜 重复历史</button>
+        <button data-tab="tab-history">📊 查重统计</button>
         <button data-tab="tab-analytics">📈 图表分析</button>
         <button data-tab="tab-import">📥 导入</button>
         <button data-tab="tab-export">📤 导出</button>
@@ -388,6 +395,8 @@
                     <option value="company">公司</option>
                 </select>
                 <button class="btn btn-primary" onclick="searchCustomers()">搜索</button>
+                <button class="btn btn-sm" style="background:#9c27b0;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;" onclick="var p=document.getElementById('advancedSearchPanel');if(p)p.style.display=p.style.display==='none'?'flex':'none';">🔍 高级</button>
+                <button class="btn btn-sm" style="background:#e91e63;color:white;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;margin-left:8px;" onclick="showCleanDuplicates()">🧹 批量删除</button>
             </div>
             <div class="table-container">
                 <table id="customerTable">
@@ -431,22 +440,17 @@
     <!-- Tab: History -->
     <div id="tab-history" class="tab-content">
         <div class="card">
-            <h2>重复历史</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>时间</th>
-                            <th>客户A</th>
-                            <th>客户B</th>
-                            <th>相似度</th>
-                            <th>等级</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTbody"></tbody>
-                </table>
+            <h2>查重统计</h2>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日查重</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总查重次数</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#fa709a,#fee140);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日重复</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#ff5858,#f09819);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总重复数</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#a18cd1,#fbc2eb);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csAvgRate">0%</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">平均重复率</div></div>
             </div>
-            <button class="btn btn-outline" style="margin-top:12px;" onclick="loadHistory()">刷新</button>
+            <h4>📈 近7天查重趋势</h4>
+            <canvas id="checkTrendChart" height="200" style="margin-top:10px;"></canvas>
+            <button class="btn btn-outline" style="margin-top:12px;" onclick="loadCheckStats()">刷新</button>
         </div>
     </div>
 
@@ -584,7 +588,7 @@
 
             if (tabId === 'tab-dashboard') loadDashboard();
             if (tabId === 'tab-customers') loadCustomers();
-            if (tabId === 'tab-history') loadHistory();
+            if (tabId === 'tab-history') loadCheckStats();
             if (tabId === 'tab-analytics') loadAnalytics();
         }
         document.querySelectorAll('.nav-tabs button').forEach(btn => {
@@ -717,9 +721,17 @@
             currentPage = page;
             const search = document.getElementById('customerSearch').value.trim();
             const field = document.getElementById('searchField').value;
+            var region = document.getElementById('searchRegion') ? document.getElementById('searchRegion').value : '';
+            var dateFrom = document.getElementById('searchDateFrom') ? document.getElementById('searchDateFrom').value : '';
+            var dateTo = document.getElementById('searchDateTo') ? document.getElementById('searchDateTo').value : '';
+            var company = document.getElementById('searchCompany') ? document.getElementById('searchCompany').value.trim() : '';
             currentSearch = search;
             try {
-                const url = `/api/customers?page=${page}&search=${encodeURIComponent(search)}&field=${field}`;
+                var url = `/api/customers?page=${page}&search=${encodeURIComponent(search)}&field=${field}`;
+                if (region) { url += `&region=${encodeURIComponent(region)}`; }
+                if (dateFrom) { url += `&date_from=${encodeURIComponent(dateFrom)}`; }
+                if (dateTo) { url += `&date_to=${encodeURIComponent(dateTo)}`; }
+                if (company) { url += `&company=${encodeURIComponent(company)}`; }
                 const res = await fetch(url);
                 const data = await res.json();
                 allCustomers = data.customers;
@@ -748,16 +760,42 @@
                 tbody.appendChild(tr);
             });
 
-            const totalPages = Math.ceil(data.total / data.per_page);
-            const pg = document.getElementById('customerPagination');
+            var totalPages = Math.ceil(data.total / data.per_page);
+            var pg = document.getElementById('customerPagination');
             pg.innerHTML = '';
-            for (let i = 1; i <= totalPages && i <= 20; i++) {
-                const span = document.createElement('span');
-                span.textContent = i;
-                if (i === currentPage) span.classList.add('active');
-                span.onclick = () => loadCustomers(i);
-                pg.appendChild(span);
+            var prv = document.createElement('span');
+            prv.textContent = '‹';
+            prv.style.cssText = 'font-size:16px;padding:5px 10px;';
+            if (currentPage > 1) { prv.onclick = function(){ loadCustomers(currentPage - 1); }; } else { prv.style.cssText += 'color:#ccc;cursor:default;'; }
+            pg.appendChild(prv);
+            var maxV = 10;
+            var st = Math.max(1, currentPage - 4);
+            var en = Math.min(totalPages, st + maxV - 1);
+            if (en - st < maxV - 1) { st = Math.max(1, en - maxV + 1); }
+            if (st > 1) {
+                var f = document.createElement('span'); f.textContent = '1'; f.onclick = function(){ loadCustomers(1); }; pg.appendChild(f);
+                if (st > 2) { var d = document.createElement('span'); d.textContent = '...'; d.style.cssText = 'cursor:default;color:#888;border:none;'; pg.appendChild(d); }
             }
+            for (var i = st; i <= en; i++) {
+                var sp = document.createElement('span');
+                sp.textContent = i;
+                if (i === currentPage) { sp.classList.add('active'); }
+                sp.onclick = (function(p){ return function(){ loadCustomers(p); }; })(i);
+                pg.appendChild(sp);
+            }
+            if (en < totalPages) {
+                if (en < totalPages - 1) { var d2 = document.createElement('span'); d2.textContent = '...'; d2.style.cssText = 'cursor:default;color:#888;border:none;'; pg.appendChild(d2); }
+                var l = document.createElement('span'); l.textContent = totalPages; l.onclick = function(){ loadCustomers(totalPages); }; pg.appendChild(l);
+            }
+            var nx = document.createElement('span');
+            nx.textContent = '›';
+            nx.style.cssText = 'font-size:16px;padding:5px 10px;';
+            if (currentPage < totalPages) { nx.onclick = function(){ loadCustomers(currentPage + 1); }; } else { nx.style.cssText += 'color:#ccc;cursor:default;'; }
+            pg.appendChild(nx);
+            var js = document.createElement('span');
+            js.style.cssText = 'display:flex;align-items:center;gap:4px;margin-left:6px;border:none;cursor:default;';
+            js.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> <button style="padding:4px 8px;border:1px solid #667eea;background:#667eea;color:white;border-radius:4px;cursor:pointer;font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px;color:#888;margin-left:2px;">共' + totalPages + '页</span>';
+            pg.appendChild(js);
             updateBatchDeleteBtn();
         }
 
@@ -1368,6 +1406,93 @@
 
         // ========== Init ==========
         loadDashboard();
+    
+        function jumpToPage() {
+            var inp = document.getElementById('pageJumpInput');
+            if (inp) { var p = parseInt(inp.value); if (p >= 1) loadCustomers(p); }
+        }
+        function showCleanDuplicates() {
+            fetch('/api/customers/batch-clean-duplicates').then(function(r){return r.json();}).then(function(data) {
+                if (!data.total_groups) { showToast('未发现重复客户','info'); return; }
+                var msg = '发现 ' + data.total_groups + ' 组重复客户\n';
+                for (var i = 0; i < data.groups.length && i < 5; i++) { msg += '\n[' + data.groups[i].type + '] ' + data.groups[i].key + ' (' + data.groups[i].count + '条)'; }
+                if (data.groups.length > 5) msg += '\n...等' + data.total_groups + '组';
+                var c = prompt(msg + '\n\n编号（1-' + data.total_groups + '）或取消：','1');
+                if (!c) return;
+                var idx = parseInt(c)-1;
+                if (idx < 0 || idx >= data.groups.length) { showToast('无效','error'); return; }
+                var g = data.groups[idx];
+                var a = prompt('组: ' + g.key + ' (' + g.count + '条)\n1=保留第1条\n2=全部删除\n3=跳过','1');
+                if (a === '1') {
+                    fetch('/api/customers/batch-clean-duplicates/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'keep_one',ids:g.customers.map(function(x){return x.id;}),pwd:window._dataPassword||''})})
+                    .then(function(r){return r.json();}).then(function(d){if(d.ok){showToast('已清理 '+d.deleted+' 条');loadCustomers(1);}else showToast('失败','error');});
+                } else if (a === '2') {
+                    fetch('/api/customers/batch-clean-duplicates/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_all',ids:g.customers.map(function(x){return x.id;}),pwd:window._dataPassword||''})})
+                    .then(function(r){return r.json();}).then(function(d){if(d.ok){showToast('已删除 '+d.deleted+' 条');loadCustomers(1);}else showToast('失败','error');});
+                }
+            }).catch(function(){showToast('加载失败','error');});
+        }
+        async function loadCheckStats() {
+            try {
+                var res = await fetch('/api/analytics/check-stats');
+                var d = await res.json();
+                if (document.getElementById('csTodayChecks')) document.getElementById('csTodayChecks').textContent = d.today_checks || 0;
+                if (document.getElementById('csTotalChecks')) document.getElementById('csTotalChecks').textContent = d.total_checks || 0;
+                if (document.getElementById('csTodayDup')) document.getElementById('csTodayDup').textContent = d.today_duplicate || 0;
+                if (document.getElementById('csTotalDup')) document.getElementById('csTotalDup').textContent = d.total_duplicate || 0;
+                if (document.getElementById('csAvgRate')) document.getElementById('csAvgRate').textContent = (d.avg_duplicate_rate || 0) + '%';
+                var ctx = document.getElementById('checkTrendChart');
+                if (ctx) {
+                    if (window._checkTrendChart) window._checkTrendChart.destroy();
+                    var tr = d.weekly_trend || [];
+                    window._checkTrendChart = new Chart(ctx, {
+                        type:'line',
+                        data:{labels:tr.map(function(x){return x.date.slice(5);}),datasets:[{label:'查重次数',data:tr.map(function(x){return x.count;}),borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.1)',fill:true,tension:0.3}]},
+                        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+                    });
+                }
+            } catch(e) {}
+        }
+        function loadRegionMap() {
+            fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
+                var c = document.getElementById('regionMapContainer');
+                var entries = Object.entries(data.regions || {}).sort(function(a,b){return b[1]-a[1];});
+                if (!entries.length) { c.innerHTML = '<p style="color:#888;">暂无数据</p>'; return; }
+                var max = entries[0][1];
+                var html = '<div style="max-height:300px;overflow-y:auto;">';
+                for (var i = 0; i < entries.length; i++) {
+                    var arr = entries[i];
+                    var pct = Math.round(arr[1]/max*100);
+                    html += '<div style="margin:6px 0;"><span style="font-size:13px;min-width:80px;display:inline-block;">' + arr[0] + '</span><div style="display:inline-block;width:60%;height:20px;background:#e8e8e8;border-radius:10px;margin:0 8px;vertical-align:middle;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:10px;text-align:right;line-height:20px;color:#fff;font-size:11px;padding-right:6px;box-sizing:border-box;">' + arr[1] + '</div></div><span style="font-size:11px;color:#888;">' + Math.round(arr[1]/data.total_with_region*100) + '%</span></div>';
+                }
+                html += '</div>';
+                c.innerHTML = html;
+                var md = document.getElementById('regionMapDiv');
+                if (!md) return;
+                var ce = [];
+                for (var j = 0; j < entries.length; j++) { if (data.coords && data.coords[entries[j][0]]) { ce.push(entries[j]); } }
+                if (ce.length < 2) { md.style.display = 'none'; return; }
+                md.style.display = 'block';
+                var map = L.map(md, {zoomControl:true,attributionControl:false});
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:''}).addTo(map);
+                var mxc = ce[0][1];
+                for (var k = 0; k < ce.length; k++) {
+                    var e = ce[k];
+                    var pt = data.coords[e[0]];
+                    var r = Math.max(8, Math.sqrt(e[1]/mxc) * 35);
+                    var mk = L.circleMarker([pt.lat,pt.lng],{radius:r,fillColor:'#667eea',color:'#fff',weight:2,fillOpacity:0.65}).addTo(map);
+                    var lb = e[1] >= 10000 ? (e[1]/10000).toFixed(1) + '万' : e[1].toLocaleString();
+                    mk.bindTooltip('<div style="text-align:center;font-weight:bold;font-size:11px;">'+e[0]+'<br>'+lb+'</div>',{permanent:true,direction:'center',className:'map-label'});
+                    mk.bindPopup('<strong>'+e[0]+'</strong><br>客户: <strong style="color:#667eea;">'+e[1].toLocaleString()+'</strong> ('+Math.round(e[1]/data.total_with_region*100)+'%)');
+                }
+                var bl = L.latLngBounds([]);
+                for (var l = 0; l < ce.length; l++) { bl.extend([data.coords[ce[l][0]].lat, data.coords[ce[l][0]].lng]); }
+                if (bl.isValid()) { map.fitBounds(bl,{padding:[20,20]}); } else { map.setView([30,105],2); }
+            }).catch(function(){
+                var e = document.getElementById('regionMapContainer');
+                if (e) e.innerHTML = '<p style="color:#888;">加载失败</p>';
+            });
+        }
     </script>
 </body>
 </html>
