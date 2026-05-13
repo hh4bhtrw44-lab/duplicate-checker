@@ -334,14 +334,45 @@ def detect_phone_region(phone):
     if not phone:
         return ''
     try:
-        # 去掉+号再解析
         clean = phone.replace('+', '')
-        parsed = phonenumbers.parse('+' + clean, None)
-        # 先试中文地区描述（城市/省份级别）
+        # 先尝试解析带+号的完整号码
+        try:
+            parsed = phonenumbers.parse('+' + clean, None)
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        except:
+            pass
+        # 如果没有+号前缀，尝试不同国家默认区域
+        # 中国大陆手机号
+        if len(clean) == 11 and clean.startswith('1'):
+            parsed = phonenumbers.parse(clean, 'CN')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 香港8位号码
+        if len(clean) == 8:
+            parsed = phonenumbers.parse(clean, 'HK')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 台湾
+        if len(clean) == 9 and clean.startswith('9'):
+            parsed = phonenumbers.parse(clean, 'TW')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 美国/加拿大10位号码
+        if len(clean) == 10:
+            parsed = phonenumbers.parse(clean, 'US')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 最后尝试作为中国号码
+        parsed = phonenumbers.parse(clean, 'CN')
         desc = geocoder.description_for_number(parsed, 'zh')
         if desc:
             return desc
-        # 如果没有城市级描述，返回国家名
         country = geocoder.country_name_for_number(parsed, 'zh')
         return country or ''
     except:
@@ -426,60 +457,48 @@ def api_quick_add():
     all_duplicates = []
 
     for line in lines:
-        parts = re.split(r'[\s\t,，|;；]+', line)
-        phone_parts = []
-        name_parts = []
+        line = line.strip()
+        if not line:
+            continue
 
-        for p in parts:
-            p = p.strip()
-            if not p:
+        all_segments = re.split(r'[\s\t,，|;；]+', line)
+        phone_candidates = []
+        name_candidates = []
+        prefix_buf = ''  # 存+86等短前缀
+
+        for seg in all_segments:
+            seg = seg.strip()
+            if not seg:
                 continue
-            # 从每个部分中提取7位以上的数字序列作为电话
-            nums = re.findall(r'\d{7,}', p)
-            if nums:
-                phone_parts.append(nums[0])
-                # 剩下的文字部分（去掉数字和+号）
-                remaining = re.sub(r'\d{7,}', '', p, count=1).strip()
-                remaining = re.sub(r'^\+[\d]*\s*', '', remaining).strip()
-                remaining = re.sub(r'[\+\-\s\(\)]', '', remaining).strip()
-                if remaining:
-                    name_parts.append(remaining)
-            # 以+开头但没有7位以上数字的片段（如+86、+852）
-            elif p.startswith('+') and len(re.sub(r'\D', '', p)) <= 4:
-                # 这个可能是国际区号前缀，与下一个电话合并
-                # 先暂存，等到处理完所有部分再处理
-                if phone_parts:
-                    # 已有电话了，把+xx拼到第一个电话前面
-                    prefix = re.sub(r'[\+\s]', '', p)
-                    phone_parts[0] = prefix + phone_parts[0]
-                else:
-                    # 还没电话，存起来等后续
-                    phone_parts.append('PREFIX:' + p)
-            elif p.isdigit() or (p.startswith('+') and len(p) > 4):
-                name_parts.append(p)
+            # 判断是否是国际区号前缀（+86、+852等）
+            if re.match(r'^\+', seg) and len(seg) <= 5:
+                prefix_buf = re.sub(r'[\+\s]', '', seg)
+                continue
+            digit_only = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
+            if digit_only.isdigit() and len(digit_only) >= 5:
+                phone_candidates.append(prefix_buf + digit_only)
+                prefix_buf = ''
+            elif seg.isdigit() and len(seg) >= 5:
+                phone_candidates.append(prefix_buf + seg)
+                prefix_buf = ''
             else:
-                name_parts.append(p)
+                name_candidates.append(seg)
 
-        # 处理缓存的+前缀
-        new_phone = []
-        for p in phone_parts:
-            if p.startswith('PREFIX:'):
-                continue  # 等后面处理
-            new_phone.append(p)
-        phone_parts = new_phone
+        # 如果前缀还留着，说明没有电话跟它，当姓名处理
+        if prefix_buf and not phone_candidates:
+            name_candidates.insert(0, '+' + prefix_buf)
 
-        # 如果依然没分出电话号码，再从所有文字中提取
-        if not phone_parts:
-            combined = ''.join(name_parts)
-            nums = re.findall(r'\d{7,}', combined)
-            if nums:
-                phone_parts = [nums[0]]
-                new_name = re.sub(r'\d{7,}', '', combined, count=1).strip()
-                new_name = re.sub(r'[\+\-\s]', '', new_name).strip()
-                name_parts = [new_name] if new_name else []
+        if not phone_candidates:
+            combined = ''.join(name_candidates)
+            found_nums = re.findall(r'\d{5,}', combined)
+            if found_nums:
+                phone_candidates = found_nums
+                for n in found_nums:
+                    combined = combined.replace(n, '', 1)
+                name_candidates = [combined.strip()] if combined.strip() else []
 
-        name = ' '.join(name_parts) if name_parts else ''
-        phone = clean_phone(' '.join(phone_parts)) if phone_parts else ''
+        name = ' '.join(name_candidates) if name_candidates else ''
+        phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
 
         if not name and not phone:
             continue
