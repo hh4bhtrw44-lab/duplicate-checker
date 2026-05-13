@@ -754,7 +754,6 @@
                 } catch {}
             } catch { /* dashboard load failed */ }
             loadRegionMap();
-            loadRegionMap();
         }
         function loadRegionMap() {
             fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
@@ -793,14 +792,7 @@
                         color: '#fff',
                         weight: 2,
                         fillOpacity: 0.65
-                    var marker = L.circleMarker([pt.lat, pt.lng], {
-                        radius: radius,
-                        fillColor: isCN ? '#e91e63' : '#667eea',
-                        color: '#fff',
-                        weight: 2,
-                        fillOpacity: 0.65
-                    }).addTo(map);
-                    var labelText = count >= 10000 ? (count/10000).toFixed(1) + '万' : count.toLocaleString();
+                                var labelText = count >= 10000 ? (count/10000).toFixed(1) + '万' : count.toLocaleString();
                     marker.bindTooltip('<div style="font-weight:bold;font-size:11px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);">' + region + '<br>' + labelText + '</div>', {permanent:true,direction:'center',className:'map-label'});
                     marker.bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style="color:#667eea;">' + count.toLocaleString() + '</strong><br>占比: ' + Math.round(count/data.total_with_region*100) + '%');
                 });
@@ -808,6 +800,7 @@
                 var bounds = L.latLngBounds(latlngs);
                 if (bounds.isValid()) { map.fitBounds(bounds, { padding: [20, 20] }); }
                 else { map.setView([30, 105], 2); }
+        });
             }).catch(function() {
                 document.getElementById('regionMapContainer').innerHTML = '<p style="color:#888;">加载失败</p>';
             });
@@ -818,9 +811,7 @@
         let currentSearch = '';
         let allCustomers = [];
 
-      
-        }
-          async function loadCustomers(page = 1) {
+        async function loadCustomers(page = 1) {
             currentPage = page;
             const search = document.getElementById('customerSearch').value.trim();
             const field = document.getElementById('searchField').value;
@@ -1154,7 +1145,7 @@
         }
         async function deleteCustomerConfirm(id, pwd) {
             try {
-                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/customers/${id}?pwd=${encodeURIComponent(pwd || window._dataPassword || '')}`, { method: 'DELETE' });
                 if ((await res.json()).ok) {
                     showToast('删除成功');
                     loadCustomers(currentPage);
@@ -1594,7 +1585,6 @@
             } catch { showToast('加载重复数据失败', 'error'); }
         }
 
-    
     </script>
 </body>
 </html>
