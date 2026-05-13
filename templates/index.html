@@ -308,7 +308,7 @@
         <button data-tab="tab-customers">👥 客户管理</button>
         <button data-tab="tab-check">🔍 查重</button>
         <button data-tab="tab-batch-check">📈 批量查重</button>
-        <button data-tab="tab-history">📜 重复历史</button>
+        <button data-tab="tab-history">📊 查重统计</button>
         <button data-tab="tab-analytics">📈 图表分析</button>
         <button data-tab="tab-import">📥 导入</button>
         <button data-tab="tab-export">📤 导出</button>
@@ -450,22 +450,32 @@
     <!-- Tab: History -->
     <div id="tab-history" class="tab-content">
         <div class="card">
-            <h2>重复历史</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>时间</th>
-                            <th>客户A</th>
-                            <th>客户B</th>
-                            <th>相似度</th>
-                            <th>等级</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTbody"></tbody>
-                </table>
+            <h2>查重统计</h2>
+            <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:20px;">
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:18px; border-radius:12px; text-align:center;">
+                    <div style="font-size:28px; font-weight:700;" id="csTodayChecks">0</div>
+                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">今日查重</div>
+                </div>
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#43e97b,#38f9d7); color:white; padding:18px; border-radius:12px; text-align:center;">
+                    <div style="font-size:28px; font-weight:700;" id="csTotalChecks">0</div>
+                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">总查重次数</div>
+                </div>
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#fa709a,#fee140); color:white; padding:18px; border-radius:12px; text-align:center;">
+                    <div style="font-size:28px; font-weight:700;" id="csTodayDup">0</div>
+                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">今日重复</div>
+                </div>
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#ff5858,#f09819); color:white; padding:18px; border-radius:12px; text-align:center;">
+                    <div style="font-size:28px; font-weight:700;" id="csTotalDup">0</div>
+                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">总重复数</div>
+                </div>
+                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); color:white; padding:18px; border-radius:12px; text-align:center;">
+                    <div style="font-size:28px; font-weight:700;" id="csAvgRate">0%</div>
+                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">平均重复率</div>
+                </div>
             </div>
-            <button class="btn btn-outline" style="margin-top:12px;" onclick="loadHistory()">刷新</button>
+            <h4>📈 近7天查重趋势</h4>
+            <canvas id="checkTrendChart" height="200" style="margin-top:10px;"></canvas>
+            <button class="btn btn-outline" style="margin-top:12px;" onclick="loadCheckStats()">刷新</button>
         </div>
     </div>
 
@@ -609,7 +619,7 @@
 
             if (tabId === 'tab-dashboard') loadDashboard();
             if (tabId === 'tab-customers') loadCustomers();
-            if (tabId === 'tab-history') loadHistory();
+            if (tabId === 'tab-history') loadCheckStats();
             if (tabId === 'tab-analytics') loadAnalytics();
         }
         document.querySelectorAll('.nav-tabs button').forEach(btn => {
@@ -1253,6 +1263,31 @@
         }
 
         // ========== History ==========
+        async function loadCheckStats() {
+            try {
+                const res = await fetch('/api/analytics/check-stats');
+                const data = await res.json();
+                document.getElementById('csTodayChecks').textContent = data.today_checks || 0;
+                document.getElementById('csTotalChecks').textContent = data.total_checks || 0;
+                document.getElementById('csTodayDup').textContent = data.today_duplicate || 0;
+                document.getElementById('csTotalDup').textContent = data.total_duplicate || 0;
+                document.getElementById('csAvgRate').textContent = (data.avg_duplicate_rate || 0) + '%';
+                const ctx = document.getElementById('checkTrendChart');
+                if (ctx) {
+                    if (window._checkTrendChart) window._checkTrendChart.destroy();
+                    const trend = data.weekly_trend || [];
+                    window._checkTrendChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: trend.map(d => d.date.slice(5)),
+                            datasets: [{label: '查重次数', data: trend.map(d => d.count), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3}]
+                        },
+                        options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
+                    });
+                }
+            } catch { showToast('加载查重统计失败', 'error'); }
+        }
+
         async function loadHistory() {
             try {
                 const res = await fetch('/api/history?limit=100');
