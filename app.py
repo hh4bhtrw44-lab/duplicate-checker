@@ -296,12 +296,18 @@ def api_customers():
         "per_page": per_page
     })
 
+def clean_phone(phone):
+    """清洗电话号码：去空格、去+号、去横线、去括号"""
+    if not phone:
+        return phone
+    return re.sub(r'[\s\+\-\(\)]', '', phone)
+
 @app.route('/api/customers', methods=['POST'])
 @login_required
 def api_add_customer():
     data = request.get_json()
     name = data.get('name', '').strip()
-    phone = data.get('phone', '').strip()
+    phone = clean_phone(data.get('phone', ''))
     email = data.get('email', '').strip()
     company = data.get('company', '').strip()
     notes = data.get('notes', '').strip()
@@ -346,7 +352,7 @@ def api_add_customer():
 def api_update_customer(id):
     data = request.get_json()
     name = data.get('name', '').strip()
-    phone = data.get('phone', '').strip()
+    phone = clean_phone(data.get('phone', ''))
     email = data.get('email', '').strip()
     company = data.get('company', '').strip()
     notes = data.get('notes', '').strip()
@@ -577,7 +583,7 @@ def api_import_customers():
                     break
 
         name = mapped.get('name', '')
-        phone = mapped.get('phone', '')
+        phone = clean_phone(mapped.get('phone', ''))
         email = mapped.get('email', '')
 
         if not name and not phone:
