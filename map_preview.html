@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>归属地地图 - 案例展示</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 20px; background: #f0f2f5; }
+        .card { background: white; border-radius: 12px; padding: 20px; max-width: 900px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { margin-bottom: 10px; }
+        #map { height: 500px; border-radius: 10px; margin-top: 15px; }
+        .legend { margin-top: 10px; font-size: 12px; color: #666; display: flex; gap: 15px; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .sample-data { font-size: 12px; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>📍 客户归属地地图（案例预览）</h2>
+        <p style="color:#888; font-size:14px;">气泡大小 = 客户数量，鼠标悬停查看详情</p>
+        <div id="map"></div>
+        <div class="legend">
+            <span><span class="legend-dot" style="background:#667eea;"></span> <span id="totalLabel">加载中...</span></span>
+            <span id="topRegions"></span>
+        </div>
+        <div class="sample-data" id="sampleInfo"></div>
+    </div>
+
+    <script>
+        // 模拟从实际API获取的数据（根据刚才的检测结果）
+        const regionData = [
+            {region: '土耳其', count: 290576, lat: 38.9637, lng: 35.2433},
+            {region: '叙利亚', count: 36754, lat: 34.8021, lng: 38.9968},
+            {region: '南非', count: 3397, lat: -30.5595, lng: 22.9375},
+            {region: '乌兹别克斯坦', count: 2802, lat: 41.3775, lng: 64.5853},
+            {region: '巴西', count: 1888, lat: -14.2350, lng: -51.9253},
+            {region: '也门', count: 1715, lat: 15.5527, lng: 48.5164},
+            {region: '哈萨克斯坦', count: 1696, lat: 48.0196, lng: 66.9237},
+            {region: '墨西哥', count: 1697, lat: 23.6345, lng: -102.5528},
+            {region: '沙特阿拉伯', count: 1672, lat: 23.8859, lng: 45.0792},
+            {region: '秘鲁', count: 1527, lat: -9.1900, lng: -75.0152},
+            {region: '委内瑞拉', count: 1193, lat: 6.4238, lng: -66.5897},
+            {region: '巴基斯坦', count: 1017, lat: 30.3753, lng: 69.3451},
+            {region: '突尼斯', count: 952, lat: 33.8869, lng: 9.5375},
+            {region: '哥伦比亚', count: 868, lat: 4.5709, lng: -74.2973},
+            {region: '西班牙', count: 723, lat: 40.4637, lng: -3.7492},
+            {region: '希腊', count: 720, lat: 39.0742, lng: 21.8243},
+            {region: '塞尔维亚', count: 707, lat: 44.0165, lng: 21.0059},
+            {region: '罗马尼亚', count: 692, lat: 45.9432, lng: 24.9668},
+            {region: '黎巴嫩', count: 620, lat: 33.8547, lng: 35.8623},
+            {region: '伊拉克', count: 576, lat: 33.2232, lng: 43.6793},
+            {region: '北京市', count: 12500, lat: 39.9042, lng: 116.4074},
+            {region: '福建省福州市', count: 5800, lat: 26.0745, lng: 119.2965},
+            {region: '广东省广州市', count: 4200, lat: 23.1291, lng: 113.2644},
+            {region: '上海市', count: 3800, lat: 31.2304, lng: 121.4737},
+            {region: '香港', count: 2500, lat: 22.3193, lng: 114.1694},
+        ];
+
+        const map = L.map('map').setView([30, 105], 3);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 按数量排序取前30
+        const top = regionData.sort((a,b) => b.count - a.count).slice(0, 30);
+        const maxCount = top[0].count;
+
+        top.forEach(d => {
+            const radius = Math.max(5, Math.sqrt(d.count / maxCount) * 40);
+            const color = d.region.includes('省') || d.region.includes('市') || d.region === '香港' ? '#e91e63' : '#667eea';
+            
+            L.circleMarker([d.lat, d.lng], {
+                radius: radius,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.6
+            }).addTo(map).bindPopup(`
+                <strong>${d.region}</strong><br>
+                客户数量: <strong style="color:#667eea;">${d.count.toLocaleString()}</strong>
+            `);
+        });
+
+        // 缩放到合适范围
+        const bounds = L.latLngBounds(top.map(d => [d.lat, d.lng]));
+        map.fitBounds(bounds, {padding: [30, 30]});
+
+        document.getElementById('totalLabel').textContent = `共 ${regionData.length} 个地区`;
+        document.getElementById('topRegions').innerHTML = '前5: ' + top.slice(0,5).map(d => d.region).join(' · ');
+        document.getElementById('sampleInfo').textContent = '🔵 国内城市(粉色) | 🌍 国家(蓝色) | 气泡越大客户越多';
+    </script>
+</body>
+</html>
