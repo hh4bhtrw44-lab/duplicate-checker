@@ -394,6 +394,18 @@ def detect_phone_region(phone):
             desc = geocoder.description_for_number(parsed, 'zh')
             if desc:
                 return desc
+        # 土耳其10位号码（无+90前缀时）
+        if len(clean) == 10:
+            parsed = phonenumbers.parse(clean, 'TR')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 哈萨克斯坦10位号码
+        if len(clean) == 10:
+            parsed = phonenumbers.parse(clean, 'KZ')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
         # 最后尝试作为中国号码
         parsed = phonenumbers.parse(clean, 'CN')
         desc = geocoder.description_for_number(parsed, 'zh')
@@ -603,8 +615,14 @@ def api_detect_regions():
                 elif len(clean) == 9 and clean.startswith('9'):
                     parsed = phonenumbers.parse(clean, 'TW')
                     region = geocoder.description_for_number(parsed, 'zh') or ''
-                elif len(clean) == 10:
+                if len(clean) == 10:
                     parsed = phonenumbers.parse(clean, 'US')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                if not region and len(clean) == 10:
+                    parsed = phonenumbers.parse(clean, 'TR')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                if not region and len(clean) == 10:
+                    parsed = phonenumbers.parse(clean, 'KZ')
                     region = geocoder.description_for_number(parsed, 'zh') or ''
                 else:
                     parsed = phonenumbers.parse(clean, 'CN')
