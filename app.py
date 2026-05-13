@@ -408,15 +408,25 @@ def api_quick_add():
             p = p.strip()
             if not p:
                 continue
-            # 判断是否是电话号码：纯数字、带+号、带横线、带括号的号码
-            clean_p = re.sub(r'[\+\-\s\(\)]', '', p)
+            # 强判断：去掉特殊字符后全是数字且>=5位 → 电话号码
+            clean_p = re.sub(r'[\+\-\s\(\)\.\/]', '', p)
             if clean_p.isdigit() and len(clean_p) >= 5:
                 phone_parts.append(p)
-            # 纯数字超过5位也算号码（可能没前缀）
             elif p.isdigit() and len(p) >= 5:
                 phone_parts.append(p)
             else:
                 name_parts.append(p)
+
+        # 如果没分出电话号码，从姓名里尝试提取
+        if not phone_parts:
+            combined = ''.join(name_parts)
+            # 尝试从字符串中提取数字序列（>=7位）
+            nums = re.findall(r'\d{7,}', combined)
+            if nums:
+                phone_parts = [nums[0]]
+                # 从姓名中移除提取的电话号码
+                new_name = re.sub(r'\d{7,}', '', combined, count=1).strip()
+                name_parts = [new_name] if new_name else []
 
         name = ' '.join(name_parts) if name_parts else ''
         phone = clean_phone(' '.join(phone_parts)) if phone_parts else ''
