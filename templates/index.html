@@ -710,8 +710,8 @@
                 document.getElementById('totalChecks').textContent = data.total_checks;
                 document.getElementById('highDuplicate').textContent = data.high_duplicate;
             } catch { /* dashboard load failed */ }
-            loadRegionMap();
-            loadRegionMap();
+            // 加载地图
+            setTimeout(function(){ loadRegionMap(); }, 500);
         }
 
         // ========== Customers CRUD ==========
