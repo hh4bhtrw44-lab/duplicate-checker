@@ -1069,11 +1069,12 @@
             if (ids.length === 0) return;
             showDataPasswordModal('batchDelete', ids);
         }
-        async function batchDeleteConfirm() {
+        async function batchDeleteConfirm(pwd) {
+            pwd = pwd || window._dataPassword || '';
             const ids = pendingAction ? pendingAction.params : [];
             if (ids.length === 0) return;
             try {
-                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const res = await fetch('/api/customers/batch-delete?pwd=' + encodeURIComponent(pwd), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
                 const result = await res.json();
                 if (result.ok) {
                     showToast(`成功删除 ${result.deleted} 个客户`);
@@ -1346,8 +1347,11 @@
             if (input.files.length) showDataPasswordModal('uploadImport', input.files[0]);
         }
 
-        async function uploadImportConfirm(file) {
-            const resultEl = document.getElementById('importResult');
+        async function uploadImportConfirm(file, pwd) {
+            pwd = pwd || window._dataPassword || '';
+            pwd = pwd || window._dataPassword || '';
+
+
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['csv', 'xlsx', 'txt'].includes(ext)) {
                 resultEl.className = 'import-result error';
