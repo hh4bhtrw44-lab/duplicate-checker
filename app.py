@@ -555,12 +555,12 @@ def api_update_customer(id):
         same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ? AND id != ?",
                                (name, id)).fetchall()
         for r in same_name:
-            duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "姓名"})
+            duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "姓名", "created_at": r["created_at"]})
     if phone:
         same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != '' AND id != ?",
                                 (phone, id)).fetchall()
         for r in same_phone:
-            duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话"})
+            duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话", "created_at": r["created_at"]})
 
     if duplicates:
         return jsonify({
