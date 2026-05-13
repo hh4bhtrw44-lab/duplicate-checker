@@ -530,9 +530,6 @@ def api_quick_add():
             name = ' '.join(name_candidates) if name_candidates else ''
             phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
 
-        name = ' '.join(name_candidates) if name_candidates else ''
-        phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
-
         if not name and not phone:
             continue
 
