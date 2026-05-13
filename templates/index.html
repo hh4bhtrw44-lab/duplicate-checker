@@ -748,13 +748,53 @@
                 const el = document.getElementById('quickAddResult');
                 el.style.display = 'block';
                 if (data.ok) {
-                    el.innerHTML = '<div class="result-card"><p style="color:#4CAF50;">✅ 成功添加 ' + data.imported + '/' + data.total + ' 条</p></div>';
+                    if (data.duplicates && data.duplicates.length > 0) {
+                        var html = '<div class="result-card"><p style="color:#4CAF50; font-weight:bold;">✅ 成功添加 ' + data.imported + '/' + data.total + ' 条</p>';
+                        html += '<div style="margin-top:10px; padding:12px; background:#fff8e1; border-radius:6px; border-left:4px solid #ff9800;">';
+                        html += '<p style="color:#e65100; font-weight:bold; margin-bottom:8px;">⚠️ 以下 ' + data.duplicates.length + ' 条跳过（检测到重复）：</p>';
+                        html += '<div class="table-container" style="max-height:200px; overflow-y:auto;"><table style="font-size:12px;"><thead><tr><th>原始内容</th><th>匹配客户</th><th>匹配字段</th></tr></thead><tbody>';
+                        data.duplicates.forEach(function(d) {
+                            d.duplicates.forEach(function(dup) {
+                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + d.line.substring(0,20) + '</td><td>' + dup.name + '</td><td><span class="badge">' + dup.field + '</span></td></tr>';
+                            });
+                        });
+                        html += '</tbody></table></div></div></div>';
+                        el.innerHTML = html;
+                    } else {
+                        el.innerHTML = '<div class="result-card"><p style="color:#4CAF50; font-weight:bold;">✅ 成功添加 ' + data.imported + '/' + data.total + ' 条</p></div>';
+                    }
                     document.getElementById('quickAddText').value = '';
                     searchCustomers();
+                    // 检测所有新增号码的地区
+                    data.duplicates.forEach(function(d) {
+                        if (d.phone) detectCountryQuick(d.phone);
+                    });
                 } else {
                     el.innerHTML = '<div class="result-card"><p style="color:#f44336;">❌ ' + (data.error || '添加失败') + '</p></div>';
                 }
             } catch { showToast('网络错误', 'error'); }
+        }
+
+        function detectCountryQuick(phone) {
+            if (!phone || phone.length < 4) return;
+            var el = document.createElement('div');
+            el.style.cssText = 'font-size:12px; color:#999; padding:4px 0;';
+            el.innerHTML = '\ud83d\udd0d 检测地区...';
+            document.getElementById('quickAddResult').appendChild(el);
+            setTimeout(async function() {
+                try {
+                    var res = await fetch('/api/phone-lookup', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({phone: phone})
+                    });
+                    var data = await res.json();
+                    if (data.valid && data.country) {
+                        el.innerHTML = '\ud83d\udccd ' + data.country + (data.carrier ? ' \u2022 ' + data.carrier : '');
+                    } else {
+                        el.innerHTML = '';
+                    }
+                } catch { el.innerHTML = ''; }
+            }, 800);
         }
 
         async function fixCustomerData() {

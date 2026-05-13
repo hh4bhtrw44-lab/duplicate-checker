@@ -382,7 +382,7 @@ def api_fix_customer_data():
 @app.route('/api/customers/quick-add', methods=['POST'])
 @login_required
 def api_quick_add():
-    """快速添加：自动识别电话和姓名"""
+    """快速添加：自动识别电话和姓名，返回去重结果"""
     data = request.get_json()
     lines = data.get('lines', '')
     if not lines:
@@ -391,11 +391,10 @@ def api_quick_add():
     lines = [l.strip() for l in lines.split('\n') if l.strip()]
     db = get_db()
     imported = 0
-    errors = []
-    import re as re_mod
+    all_duplicates = []
 
     for line in lines:
-        parts = re_mod.split(r'[\s\t,，|;；]+', line)
+        parts = re.split(r'[\s\t,，|;；]+', line)
         phone_parts = []
         name_parts = []
 
@@ -403,9 +402,9 @@ def api_quick_add():
             p = p.strip()
             if not p:
                 continue
-            if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+            if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
                 phone_parts.append(p)
-            elif re_mod.match(r'^[\d\-]{6,}$', p):
+            elif re.match(r'^[\d\-]{6,}$', p):
                 phone_parts.append(p)
             else:
                 name_parts.append(p)
@@ -414,27 +413,41 @@ def api_quick_add():
         phone = clean_phone(' '.join(phone_parts)) if phone_parts else ''
 
         if not name and not phone:
-            errors.append(line[:20] + '... 无有效数据')
             continue
 
         # 去重检查
-        dup_found = False
+        dup_entry = {'line': line, 'name': name, 'phone': phone, 'duplicates': []}
         if name:
-            same = db.execute('SELECT id, name FROM customers WHERE name=?', (name,)).fetchall()
-            if same:
-                dup_found = True
-        if phone and not dup_found:
-            same = db.execute('SELECT id, name FROM customers WHERE phone=? AND phone!=""', (phone,)).fetchall()
-            if same:
-                dup_found = True
+            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE name=?', (name,)).fetchall()
+            for s in same:
+                dup_entry['duplicates'].append({
+                    'id': s['id'], 'name': s['name'], 'phone': s['phone'],
+                    'company': s['company'], 'field': '姓名', 'created_at': s['created_at']
+                })
+        if phone:
+            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE phone=? AND phone!=""', (phone,)).fetchall()
+            for s in same:
+                if not any(d['id'] == s['id'] for d in dup_entry['duplicates']):
+                    dup_entry['duplicates'].append({
+                        'id': s['id'], 'name': s['name'], 'phone': s['phone'],
+                        'company': s['company'], 'field': '电话', 'created_at': s['created_at']
+                    })
 
-        if dup_found:
-            continue
+        if dup_entry['duplicates']:
+            all_duplicates.append(dup_entry)
+        else:
+            try:
+                db.execute('INSERT INTO customers (name, phone, company) VALUES (?, ?, ?)',
+                           (name, phone, ''))
+                imported += 1
+            except:
+                pass
 
-        try:
-            db.execute('INSERT INTO customers (name, phone, company) VALUES (?, ?, ?)',
-                       (name, phone, ''))
-            imported += 1
+    db.commit()
+    return jsonify({
+        'ok': True, 'imported': imported, 'total': len(lines),
+        'duplicates': all_duplicates
+    })
         except Exception as e:
             errors.append(f'{name}: {str(e)[:30]}')
 
