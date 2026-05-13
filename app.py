@@ -1,3 +1,4 @@
+"""八方来财 v2.1.3 - 地图+导出+快速添加修复"""
 #!/usr/bin/env python3
 """客户查重管理系统 - Flask + SQLite (完整功能版)"""
 import re
