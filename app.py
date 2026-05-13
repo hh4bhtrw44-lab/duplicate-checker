@@ -62,6 +62,11 @@ def init_db():
     conn = sqlite3.connect(app.config['DATABASE'])
     conn.execute("PRAGMA journal_mode=WAL")
     c = conn.cursor()
+    # 为旧数据库兼容添加 phone_region 列
+    try:
+        c.execute("ALTER TABLE customers ADD COLUMN phone_region TEXT DEFAULT ''")
+    except:
+        pass
     c.executescript('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,6 +84,7 @@ def init_db():
             company TEXT,
             notes TEXT,
             content TEXT DEFAULT '',
+            phone_region TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -402,9 +408,12 @@ def api_quick_add():
             p = p.strip()
             if not p:
                 continue
-            if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+            # 判断是否是电话号码：纯数字、带+号、带横线、带括号的号码
+            clean_p = re.sub(r'[\+\-\s\(\)]', '', p)
+            if clean_p.isdigit() and len(clean_p) >= 5:
                 phone_parts.append(p)
-            elif re.match(r'^[\d\-]{6,}$', p):
+            # 纯数字超过5位也算号码（可能没前缀）
+            elif p.isdigit() and len(p) >= 5:
                 phone_parts.append(p)
             else:
                 name_parts.append(p)
@@ -437,8 +446,8 @@ def api_quick_add():
             all_duplicates.append(dup_entry)
         else:
             try:
-                db.execute('INSERT INTO customers (name, phone, company) VALUES (?, ?, ?)',
-                           (name, phone, ''))
+                db.execute('INSERT INTO customers (name, phone, company, phone_region) VALUES (?, ?, ?, ?)',
+                           (name, phone, '', ''))
                 imported += 1
             except:
                 pass
@@ -448,6 +457,27 @@ def api_quick_add():
         'ok': True, 'imported': imported, 'total': len(lines),
         'duplicates': all_duplicates
     })
+
+@app.route('/api/customers/detect-regions', methods=['POST'])
+@login_required
+def api_detect_regions():
+    """批量检测电话归属地"""
+    db = get_db()
+    rows = db.execute("SELECT id, phone FROM customers WHERE phone IS NOT NULL AND phone != ''").fetchall()
+    updated = 0
+    for r in rows:
+        phone = r['phone']
+        region = ''
+        try:
+            parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
+            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+        except:
+            pass
+        if region:
+            db.execute('UPDATE customers SET phone_region=? WHERE id=?', (region, r['id']))
+            updated += 1
+    db.commit()
+    return jsonify({'ok': True, 'updated': updated, 'message': f'已检测 {updated} 个号码的归属地'})
 
 @app.route('/api/customers', methods=['POST'])
 @login_required
@@ -489,8 +519,17 @@ def api_add_customer():
                 "message": f"发现 {len(duplicates)} 个可能重复的客户"
             }), 409
 
-    c = db.execute("INSERT INTO customers (name, phone, email, company, notes, content) VALUES (?, ?, ?, ?, ?, ?)",
-                   (name, phone, email, company, notes, content))
+    # 检测号码归属地
+    region = ''
+    if phone:
+        try:
+            parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
+            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+        except:
+            pass
+
+    c = db.execute("INSERT INTO customers (name, phone, email, company, notes, content, phone_region) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                   (name, phone, email, company, notes, content, region))
     db.commit()
     return jsonify({"ok": True, "id": c.lastrowid})
 
@@ -530,8 +569,16 @@ def api_update_customer(id):
             "message": f"检测到 {len(duplicates)} 个可能重复的客户"
         }), 409
 
-    db.execute("UPDATE customers SET name=?, phone=?, email=?, company=?, notes=?, content=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-               (name, phone, email, company, notes, content, id))
+    # 检测归属地
+    region = ''
+    if phone:
+        try:
+            parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
+            region = geocoder.description_for_number(parsed, 'zh-CN') or geocoder.description_for_number(parsed, 'en') or ''
+        except:
+            pass
+    db.execute("UPDATE customers SET name=?, phone=?, email=?, company=?, notes=?, content=?, phone_region=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+               (name, phone, email, company, notes, content, region, id))
     db.commit()
     return jsonify({"ok": True})
 

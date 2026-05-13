@@ -373,6 +373,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
                 <h2 style="margin: 0;">客户列表</h2>
                 <div>
+                    <button class="btn btn-sm" style="background:#2196F3; color:white; border:none; padding:6px 14px; border-radius:4px; cursor:pointer;" onclick="detectAllRegions()">🌍 检测归属地</button>
                     <button class="btn btn-sm" style="background:#ff9800; color:white; border:none; padding:6px 14px; border-radius:4px; cursor:pointer;" onclick="fixCustomerData()">🔧 修复数据</button>
                     <button class="btn btn-danger btn-sm" id="batchDeleteBtn" style="display:none;" onclick="batchDelete()">批量删除</button>
                 </div>
@@ -395,6 +396,7 @@
                             <th class="checkbox-column"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
                             <th>姓名</th>
                             <th>电话</th>
+                            <th>归属地</th>
                             <th>公司</th>
                             <th>内容(前20字)</th>
                             <th>创建时间</th>
@@ -680,6 +682,7 @@
                     <td class="checkbox-column"><input type="checkbox" class="customer-checkbox" value="${c.id}"></td>
                     <td><strong>${c.name}</strong></td>
                     <td>${c.phone || '-'}</td>
+                    <td style="font-size:12px; color:#666;">${c.phone_region || ''}</td>
                     <td>${c.company || '-'}</td>
                     <td title="${c.content || ''}">${(c.content || '').slice(0, 20)}${(c.content || '').length > 20 ? '...' : ''}</td>
                     <td>${c.created_at}</td>
@@ -807,6 +810,20 @@
                     searchCustomers();
                 } else {
                     showToast('修复失败', 'error');
+                }
+            } catch { showToast('网络错误', 'error'); }
+        }
+
+        async function detectAllRegions() {
+            if (!confirm('检测所有未识别号码的归属地？')) return;
+            try {
+                const res = await fetch('/api/customers/detect-regions', {method: 'POST'});
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message, 'success');
+                    searchCustomers();
+                } else {
+                    showToast('检测失败', 'error');
                 }
             } catch { showToast('网络错误', 'error'); }
         }
