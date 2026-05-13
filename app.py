@@ -503,6 +503,374 @@ def api_fix_customer_data():
 
 @app.route('/api/customers/detect-regions', methods=['POST'])
 @login_required
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json() or request.form
+        username = data.get('username', '')
+        password = data.get('password', '')
+        hashed = hashlib.sha256(password.encode()).hexdigest()
+        db = get_db()
+        user = db.execute("SELECT * FROM users WHERE username=? AND password=?", (username, hashed)).fetchone()
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "用户名或密码错误"}), 401
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/api/change-password', methods=['POST'])
+@login_required
+def api_change_password():
+    data = request.get_json()
+    old_pw = data.get('old_password', '')
+    new_pw = data.get('new_password', '')
+
+    if not old_pw or not new_pw:
+        return jsonify({"error": "旧密码和新密码不能为空"}), 400
+    if len(new_pw) < 6:
+        return jsonify({"error": "新密码长度不能少于6位"}), 400
+
+    db = get_db()
+    user = db.execute("SELECT * FROM users WHERE id=?", (session['user_id'],)).fetchone()
+    if not user:
+        return jsonify({"error": "用户不存在"}), 404
+
+    if user['password'] != hashlib.sha256(old_pw.encode()).hexdigest():
+        return jsonify({"error": "旧密码错误"}), 401
+
+    db.execute("UPDATE users SET password=? WHERE id=?",
+               (hashlib.sha256(new_pw.encode()).hexdigest(), session['user_id']))
+    db.commit()
+    return jsonify({"ok": True, "message": "密码修改成功"})
+
+# ========= 路由：管理界面 =========
+
+@app.route('/')
+@login_required
+def index():
+    return render_template('index.html')
+
+@app.route('/lite')
+@login_required
+def index_lite():
+    return render_template('lite.html')
+
+@app.route('/api/customers', methods=['GET'])
+@login_required
+def api_customers():
+    db = get_db()
+    search = request.args.get('search', '').strip()
+    search_field = request.args.get('field', 'all')  # 增强搜索
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    offset = (page - 1) * per_page
+
+    # 限制最大每页条数
+    if per_page > 100:
+        per_page = 100
+
+    if search:
+        if search_field == 'name':
+            condition = "name LIKE ?"
+        elif search_field == 'phone':
+            condition = "phone LIKE ?"
+        elif search_field == 'email':
+            condition = "email LIKE ?"
+        elif search_field == 'company':
+            condition = "company LIKE ?"
+        else:
+            condition = "name LIKE ? OR phone LIKE ? OR email LIKE ? OR company LIKE ? OR notes LIKE ?"
+
+        if search_field == 'all':
+            rows = db.execute(
+                f"SELECT * FROM customers WHERE {condition} ORDER BY id DESC LIMIT ? OFFSET ?",
+                (f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', per_page, offset)
+            ).fetchall()
+            total = db.execute(
+                f"SELECT COUNT(*) FROM customers WHERE {condition}",
+                (f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%')
+            ).fetchone()[0]
+        else:
+            rows = db.execute(
+                f"SELECT * FROM customers WHERE {condition} ORDER BY id DESC LIMIT ? OFFSET ?",
+                (f'%{search}%', per_page, offset)
+            ).fetchall()
+            total = db.execute(
+                f"SELECT COUNT(*) FROM customers WHERE {condition}",
+                (f'%{search}%',)
+            ).fetchone()[0]
+    else:
+        rows = db.execute("SELECT * FROM customers ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset)).fetchall()
+        total = db.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
+
+    return jsonify({
+        "customers": [dict(r) for r in rows],
+        "total": total,
+        "page": page,
+        "per_page": per_page
+    })
+
+def clean_phone(phone):
+    """清洗电话号码：去空格、去+号、去横线、去括号"""
+    if not phone:
+        return phone
+    return re.sub(r'[\s\+\-\(\)]', '', phone)
+
+import phonenumbers
+from phonenumbers import geocoder
+
+def detect_phone_region(phone):
+    """检测号码归属地，返回'国家 城市'格式的中文描述"""
+    if not phone:
+        return ''
+    try:
+        clean = phone.replace('+', '')
+        # 先尝试解析带+号的完整号码
+        try:
+            parsed = phonenumbers.parse('+' + clean, None)
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        except:
+            pass
+        # 如果没有+号前缀，尝试不同国家默认区域
+        # 中国大陆手机号
+        if len(clean) == 11 and clean.startswith('1'):
+            parsed = phonenumbers.parse(clean, 'CN')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 香港8位号码
+        if len(clean) == 8:
+            parsed = phonenumbers.parse(clean, 'HK')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 台湾
+        if len(clean) == 9 and clean.startswith('9'):
+            parsed = phonenumbers.parse(clean, 'TW')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 美国/加拿大10位号码
+        if len(clean) == 10:
+            parsed = phonenumbers.parse(clean, 'US')
+            desc = geocoder.description_for_number(parsed, 'zh')
+            if desc:
+                return desc
+        # 最后尝试作为中国号码
+        parsed = phonenumbers.parse(clean, 'CN')
+        desc = geocoder.description_for_number(parsed, 'zh')
+        if desc:
+            return desc
+        country = geocoder.country_name_for_number(parsed, 'zh')
+        return country or ''
+    except:
+        return ''
+
+@app.route('/api/customers/fix-data', methods=['POST'])
+@login_required
+def api_fix_customer_data():
+    """自动修复数据：将电话栏中的姓名+电话混合数据拆分"""
+    db = get_db()
+    rows = db.execute('SELECT id, name, phone FROM customers').fetchall()
+    fixed = 0
+    import re as re_mod
+    for r in rows:
+        cid = r['id']
+        name = (r['name'] or '').strip()
+        phone = (r['phone'] or '').strip()
+
+        # 情况1：电话栏里混了姓名
+        if phone:
+            parts = re_mod.split(r'[\s\t,，|;；]+', phone)
+            phone_parts = []
+            name_parts = []
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+                    phone_parts.append(p)
+                else:
+                    name_parts.append(p)
+
+            if phone_parts and name_parts:
+                new_phone = clean_phone(' '.join(phone_parts))
+                new_name = ' '.join(name_parts)
+                if name:
+                    new_name = name + ' ' + new_name
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+                fixed += 1
+            elif not phone_parts and name_parts and not name:
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (name_parts[0], '', cid))
+                fixed += 1
+
+        # 情况2：姓名栏里混了电话
+        if name:
+            parts = re_mod.split(r'[\s\t,，|;；]+', name)
+            phone_parts = []
+            name_parts = []
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+                    phone_parts.append(p)
+                else:
+                    name_parts.append(p)
+
+            if phone_parts and name_parts:
+                new_name = ' '.join(name_parts)
+                existing_phone = db.execute('SELECT phone FROM customers WHERE id=?', (cid,)).fetchone()['phone'] or ''
+                new_phone = clean_phone((existing_phone + ' ' + ' '.join(phone_parts)).strip())
+                if existing_phone and existing_phone == new_phone:
+                    continue
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+                fixed += 1
+
+    db.commit()
+    return jsonify({'ok': True, 'fixed': fixed, 'message': f'已修复 {fixed} 条数据'})
+
+@app.route('/api/customers/quick-add', methods=['POST'])
+@login_required
+def api_quick_add():
+    """快速添加：自动识别电话和姓名，返回去重结果"""
+    data = request.get_json()
+    lines = data.get('lines', '')
+    if not lines:
+        return jsonify({'error': '请输入客户信息'}), 400
+
+    lines = [l.strip() for l in lines.split('\n') if l.strip()]
+    db = get_db()
+    imported = 0
+    all_duplicates = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # 先处理整行：如果有+号但被空格/符号分割，先把所有数字段合并
+        raw_digits = re.sub(r'[\+\-\s\(\)\.\/]', '', line)
+        # 如果整行去掉符号后全是数字，直接当作号码处理
+        if raw_digits.isdigit() and len(raw_digits) >= 5:
+            phone = clean_phone(raw_digits)
+            name = ''
+        else:
+            all_segments = re.split(r'[\s\t,，|;；]+', line)
+            phone_candidates = []
+            name_candidates = []
+            prefix_buf = ''  # 存+86等短前缀
+            digit_segments = []  # 收集连续数字段
+
+            def flush_digits():
+                nonlocal prefix_buf
+                if digit_segments:
+                    combined = ''.join(digit_segments)
+                    digit_segments.clear()
+                    if len(combined) >= 5:
+                        phone_candidates.append(prefix_buf + combined)
+                        prefix_buf = ''
+                    else:
+                        name_candidates.append(combined)
+
+            for seg in all_segments:
+                seg = seg.strip()
+                if not seg:
+                    continue
+                # 判断是否是国际区号前缀（+86、+852等）
+                if re.match(r'^\+', seg) and len(seg) <= 5:
+                    flush_digits()
+                    prefix_buf = re.sub(r'[\+\s]', '', seg)
+                    continue
+                digit_only = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
+                if seg == '+' or (digit_only.isdigit() and seg.startswith('+')):
+                    flush_digits()
+                    # 去掉+号后的数字
+                    prefix_buf = digit_only
+                elif digit_only.isdigit() and len(digit_only) < 11:
+                    # 短数字段合并起来
+                    digit_segments.append(digit_only)
+                elif digit_only.isdigit():
+                    flush_digits()
+                    phone_candidates.append(prefix_buf + digit_only)
+                    prefix_buf = ''
+                elif seg.isdigit():
+                    digit_segments.append(seg)
+                else:
+                    flush_digits()
+                    name_candidates.append(seg)
+            flush_digits()
+
+            # 如果前缀还留着，说明没有电话跟它，当姓名处理
+            if prefix_buf and not phone_candidates:
+                name_candidates.insert(0, '+' + prefix_buf)
+
+            if not phone_candidates:
+                combined = ''.join(name_candidates)
+                found_nums = re.findall(r'\d{5,}', combined)
+                if found_nums:
+                    phone_candidates = found_nums
+                    for n in found_nums:
+                        combined = combined.replace(n, '', 1)
+                    name_candidates = [combined.strip()] if combined.strip() else []
+
+            name = ' '.join(name_candidates) if name_candidates else ''
+            phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
+
+        name = ' '.join(name_candidates) if name_candidates else ''
+        phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
+
+        if not name and not phone:
+            continue
+
+        # 去重检查
+        dup_entry = {'line': line, 'name': name, 'phone': phone, 'duplicates': []}
+        if name:
+            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE name=?', (name,)).fetchall()
+            for s in same:
+                dup_entry['duplicates'].append({
+                    'id': s['id'], 'name': s['name'], 'phone': s['phone'],
+                    'company': s['company'], 'field': '姓名', 'created_at': s['created_at']
+                })
+        if phone:
+            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE phone=? AND phone!=""', (phone,)).fetchall()
+            for s in same:
+                if not any(d['id'] == s['id'] for d in dup_entry['duplicates']):
+                    dup_entry['duplicates'].append({
+                        'id': s['id'], 'name': s['name'], 'phone': s['phone'],
+                        'company': s['company'], 'field': '电话', 'created_at': s['created_at']
+                    })
+
+        if dup_entry['duplicates']:
+            all_duplicates.append(dup_entry)
+        else:
+            try:
+                db.execute('INSERT INTO customers (name, phone, company, phone_region) VALUES (?, ?, ?, ?)',
+                           (name, phone, '', ''))
+                imported += 1
+            except:
+                pass
+
+    db.commit()
+    return jsonify({
+        'ok': True, 'imported': imported, 'total': len(lines),
+        'duplicates': all_duplicates
+    })
+
+@app.route('/api/customers/detect-regions', methods=['POST'])
+@login_required
+
+
+
 def api_detect_regions():
     """批量检测电话归属地"""
     db = get_db()
