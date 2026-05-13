@@ -10,7 +10,7 @@ import phonenumbers
 from phonenumbers import geocoder, carrier
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, request, render_template, jsonify, session, redirect, url_for, g, send_file
+from flask import make_response,  Flask, request, render_template, jsonify, session, redirect, url_for, g, send_file
 import jieba
 import jieba.analyse
 
@@ -305,7 +305,11 @@ def api_change_password():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    resp = make_response(render_template('index.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @app.route('/lite')
 @login_required
