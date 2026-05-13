@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户查重系统</title>
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .app-header h1 { font-size: 20px; }
+        .app-header .user-info { font-size: 14px; opacity: 0.9; display: flex; align-items: center; gap: 12px; }
+        .app-header .user-info a { color: white; text-decoration: underline; cursor: pointer; font-size: 13px; }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 24px;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+        .nav-tabs button {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .nav-tabs button:hover { color: #667eea; background: #f8f9ff; }
+        .nav-tabs button.active { color: #667eea; border-bottom-color: #667eea; }
+
+        .tab-content { padding: 20px 24px; display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 17px; margin-bottom: 14px; color: #444; }
+        .card h3 { font-size: 15px; margin-bottom: 10px; color: #555; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stat-card .number { font-size: 30px; font-weight: 700; color: #667eea; }
+        .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
+
+        .btn {
+            display: inline-block;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6fd6; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #219a52; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #d68910; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-outline {
+            background: white;
+            border: 1px solid #ddd;
+            color: #555;
+        }
+        .btn-outline:hover { background: #f5f5f5; }
+        .btn-link {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: underline;
+            padding: 0;
+        }
+        .btn-link:hover { color: #5a6fd6; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 4px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .table-container { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        table th {
+            background: #f8f9fa;
+            padding: 9px 10px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e0e0e0;
+            white-space: nowrap;
+        }
+        table td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        table tr:hover { background: #f8f9ff; }
+        .table-actions { display: flex; gap: 4px; }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .search-bar input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .search-bar input:focus { border-color: #667eea; outline: none; }
+        .search-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: white; }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+        .pagination span {
+            padding: 5px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .pagination span.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination span:hover:not(.active) { background: #f0f0f0; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 560px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { margin-bottom: 18px; font-size: 19px; }
+
+        .result-card {
+            background: #f8f9ff;
+            border: 2px solid #e0e5ff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 14px;
+        }
+        .result-card .result-row { display: flex; justify-content: space-between; padding: 5px 0; }
+        .result-card .result-label { color: #666; font-size: 14px; }
+        .result-card .result-value { font-weight: 600; font-size: 15px; }
+        .result-card .result-level { font-size: 18px; font-weight: 700; margin: 8px 0; text-align: center; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .checkbox-column { width: 36px; text-align: center; }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            max-width: 400px;
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 16px;
+        }
+        .chart-box {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .chart-box h4 { font-size: 14px; color: #555; margin-bottom: 10px; }
+
+        .import-dropzone {
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        .import-dropzone:hover { border-color: #667eea; background: #f8f9ff; }
+        .import-dropzone.dragover { border-color: #667eea; background: #eef0ff; }
+        .import-dropzone p { color: #888; font-size: 14px; }
+        .import-dropzone .icon { font-size: 40px; margin-bottom: 10px; }
+
+        .import-result {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+        .import-result.success { display: block; background: #eafaf1; border: 1px solid #a9dfbf; }
+        .import-result.error { display: block; background: #fdedec; border: 1px solid #f5b7b1; }
+
+        @media (max-width: 768px) {
+            .nav-tabs { padding: 0 12px; }
+            .nav-tabs button { padding: 10px 14px; font-size: 13px; }
+            .tab-content { padding: 12px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .app-header h1 { font-size: 17px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1>📋 客户查重管理系统</h1>
+        <div class="user-info">
+            <span id="usernameDisplay"></span>
+            <a onclick="showChangePassword()">修改密码</a>
+            <a id="logoutBtn">退出登录</a>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="active" data-tab="tab-dashboard">📊 概览</button>
+        <button data-tab="tab-customers">👥 客户管理</button>
+        <button data-tab="tab-check">🔍 查重</button>
+        <button data-tab="tab-batch-check">📈 批量查重</button>
+        <button data-tab="tab-history">📜 查重历史</button>
+        <button data-tab="tab-analytics">📈 图表分析</button>
+        <button data-tab="tab-import">📥 导入</button>
+        <button data-tab="tab-export">📤 导出</button>
+    </div>
+
+    <!-- Tab: Dashboard -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="number" id="totalCustomers">-</div><div class="label">客户总数</div></div>
+            <div class="stat-card"><div class="number" id="todayNew">-</div><div class="label">今日新增</div></div>
+            <div class="stat-card"><div class="number" id="weekNew">-</div><div class="label">本周新增</div></div>
+            <div class="stat-card"><div class="number" id="monthNew">-</div><div class="label">本月新增</div></div>
+            <div class="stat-card"><div class="number" id="todayChecks">-</div><div class="label">今日查重</div></div>
+            <div class="stat-card"><div class="number" id="totalChecks">-</div><div class="label">总查重次数</div></div>
+            <div class="stat-card"><div class="number" id="highDuplicate">-</div><div class="label">高度重复记录</div></div>
+        </div>
+        <div class="card">
+            <h2>快速操作</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="switchTab('tab-customers')">👥 管理客户</button>
+                <button class="btn btn-primary" onclick="switchTab('tab-check')">🔍 查重</button>
+                <button class="btn btn-primary" onclick="switchTab('tab-batch-check')">📈 批量查重</button>
+                <button class="btn btn-success" onclick="switchTab('tab-import')">📥 导入客户</button>
+                <button class="btn btn-warning" onclick="exportExcel()">📤 导出Excel</button>
+                <button class="btn btn-primary" onclick="switchTab('tab-analytics')">📈 图表分析</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Customers -->
+    <div id="tab-customers" class="tab-content">
+        <div class="card">
+            <h2>添加新客户</h2>
+            <form id="addCustomerForm">
+                <div class="form-row">
+                    <div class="form-group"><label>姓名</label><input type="text" id="cName" placeholder="输入客户姓名（姓名与电话任填一项）"></div>
+                    <div class="form-group"><label>电话</label><input type="text" id="cPhone" oninput="detectCountry(this.value)"></div>
+                    <div id="phoneCountryResult" style="font-size:12px; margin-bottom:10px; min-height:18px;"></div>
+                    <div class="form-group"><label>邮箱</label><input type="email" id="cEmail"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>公司</label><input type="text" id="cCompany"></div>
+                    <div class="form-group"><label>备注</label><input type="text" id="cNotes"></div>
+                </div>
+                <div class="form-group"><label>内容（用来查重的文本）</label><textarea id="cContent"></textarea></div>
+                <button type="submit" class="btn btn-primary">添加客户</button>
+            </form>
+        </div>
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                <h2 style="margin: 0;">客户列表</h2>
+                <div>
+                    <button class="btn btn-danger btn-sm" id="batchDeleteBtn" style="display:none;" onclick="batchDelete()">批量删除</button>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="customerSearch" placeholder="搜索..." onkeyup="if(event.key==='Enter')searchCustomers()">
+                <select id="searchField">
+                    <option value="all">全部字段</option>
+                    <option value="name">姓名</option>
+                    <option value="phone">电话</option>
+                    <option value="email">邮箱</option>
+                    <option value="company">公司</option>
+                </select>
+                <button class="btn btn-primary" onclick="searchCustomers()">搜索</button>
+            </div>
+            <div class="table-container">
+                <table id="customerTable">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-column"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                            <th>姓名</th>
+                            <th>电话</th>
+                            <th>公司</th>
+                            <th>内容(前20字)</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTbody"></tbody>
+                </table>
+            </div>
+            <div class="pagination" id="customerPagination"></div>
+        </div>
+    </div>
+
+    <!-- Tab: Check -->
+    <div id="tab-check" class="tab-content">
+        <div class="card">
+            <div class="form-group"><label>输入姓名或电话号码</label><textarea id="checkText" rows="4" placeholder="输入客户姓名或电话号码，系统自动搜索匹配"></textarea></div>
+            <button class="btn btn-primary" onclick="quickCheck()" style="width:100%; padding:12px; font-size:16px;">🚀 开始查重</button>
+            <div id="checkResult" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Tab: Batch Check -->
+    <div id="tab-batch-check" class="tab-content">
+        <div class="card">
+            <div class="form-group"><label>输入多个姓名或电话号码</label><textarea id="batchCheckText" rows="6" placeholder="每行输入一个客户姓名或电话，批量搜索匹配"></textarea></div>
+            <button class="btn btn-primary" onclick="quickBatchCheck()" style="width:100%; padding:12px; font-size:16px;">🚀 开始批量查重</button>
+            <div id="batchCheckNewResult" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Tab: History -->
+    <div id="tab-history" class="tab-content">
+        <div class="card">
+            <h2>查重历史</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>客户A</th>
+                            <th>客户B</th>
+                            <th>相似度</th>
+                            <th>等级</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTbody"></tbody>
+                </table>
+            </div>
+            <button class="btn btn-outline" style="margin-top:12px;" onclick="loadHistory()">刷新</button>
+        </div>
+    </div>
+
+    <!-- Tab: Analytics -->
+    <div id="tab-analytics" class="tab-content">
+        <div class="card">
+            <h2>数据趋势</h2>
+            <div class="chart-grid">
+                <div class="chart-box">
+                    <h4>📈 每日新增客户趋势（近30天）</h4>
+                    <canvas id="dailyNewChart" height="200"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h4>📊 每日查重趋势（近30天）</h4>
+                    <canvas id="dailyCheckChart" height="200"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h4>🔄 相似度等级分布</h4>
+                    <canvas id="distChart" height="200"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h4>🏆 查重最多的客户（Top 10）</h4>
+                    <canvas id="topCheckedChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>汇总数据</h2>
+            <div id="analyticsSummary"></div>
+        </div>
+    </div>
+
+    <!-- Tab: Import -->
+    <div id="tab-import" class="tab-content">
+        <div class="card">
+            <h2>批量导入客户</h2>
+            <p style="color:#888; font-size:14px; margin-bottom:12px;">
+                支持 CSV、XLSX 和 TXT 格式。自动识别字段：姓名、电话、邮箱、公司、备注、查重内容。TXT格式每行一个客户，用制表符或逗号分隔
+            </p>
+            <div class="import-dropzone" id="dropzone" onclick="document.getElementById('importFile').click()">
+                <div class="icon">📂</div>
+                <p><strong>点击选择文件</strong> 或拖拽到此处</p>
+                <p style="font-size:12px;">支持 .csv、.xlsx 和 .txt 文件</p>
+                <input type="file" id="importFile" accept=".csv,.xlsx,.txt" style="display:none" onchange="onFileSelect(this)">
+            </div>
+            <div class="import-result" id="importResult"></div>
+            <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">选择文件导入</button>
+        </div>
+    </div>
+
+    <!-- Tab: Export -->
+    <div id="tab-export" class="tab-content">
+        <div class="card">
+            <h2>导出数据</h2>
+            <p style="color:#888; font-size:14px; margin-bottom:16px;">将客户数据导出为 Excel 文件（.xlsx 格式）</p>
+            <button class="btn btn-success" onclick="exportExcel()">📤 导出为 Excel</button>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Customer -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h2>编辑客户</h2>
+            <input type="hidden" id="editId">
+            <div class="form-row">
+                <div class="form-group"><label>姓名 *</label><input type="text" id="editName"></div>
+                <div class="form-group"><label>电话</label><input type="text" id="editPhone"></div>
+                <div class="form-group"><label>邮箱</label><input type="email" id="editEmail"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>公司</label><input type="text" id="editCompany"></div>
+                <div class="form-group"><label>备注</label><input type="text" id="editNotes"></div>
+            </div>
+            <div class="form-group"><label>内容</label><textarea id="editContent" rows="4"></textarea></div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+                <button class="btn btn-outline" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Change Password -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal">
+            <h2>修改密码</h2>
+            <div class="form-group"><label>旧密码</label><input type="password" id="oldPassword" placeholder="输入旧密码"></div>
+            <div class="form-group"><label>新密码（至少6位）</label><input type="password" id="newPassword" placeholder="输入新密码"></div>
+            <div class="form-group"><label>确认新密码</label><input type="password" id="confirmPassword" placeholder="再次输入新密码"></div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="changePassword()">确认修改</button>
+                <button class="btn btn-outline" onclick="closePasswordModal()">取消</button>
+            </div>
+            <div id="passwordResult" style="margin-top:10px; display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ========== Auth Check ==========
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/customers?page=1&per_page=1');
+                if (res.status === 401) window.location.href = '/login';
+            } catch { window.location.href = '/login'; }
+        }
+        checkAuth();
+
+        document.getElementById('logoutBtn').onclick = async () => {
+            await fetch('/logout');
+            window.location.href = '/login';
+        };
+
+        // ========== Tab Switching ==========
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+            if (tabId === 'tab-dashboard') loadDashboard();
+            if (tabId === 'tab-customers') loadCustomers();
+            if (tabId === 'tab-history') loadHistory();
+            if (tabId === 'tab-analytics') loadAnalytics();
+        }
+        document.querySelectorAll('.nav-tabs button').forEach(btn => {
+            btn.onclick = () => switchTab(btn.dataset.tab);
+        });
+
+        // ========== Toast ==========
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // ========== Password Change ==========
+        function showChangePassword() {
+            document.getElementById('passwordModal').classList.add('show');
+            document.getElementById('passwordResult').style.display = 'none';
+        }
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+        }
+        async function changePassword() {
+            const oldPw = document.getElementById('oldPassword').value;
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+            const resultEl = document.getElementById('passwordResult');
+
+            if (!oldPw || !newPw) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">请填写完整</p>';
+                return;
+            }
+            if (newPw.length < 6) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">新密码长度不能少于6位</p>';
+                return;
+            }
+            if (newPw !== confirmPw) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">两次密码输入不一致</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({old_password: oldPw, new_password: newPw})
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    resultEl.innerHTML = '<p style="color:#27ae60;">✅ 密码修改成功！</p>';
+                    resultEl.style.display = 'block';
+                    setTimeout(closePasswordModal, 1500);
+                    document.getElementById('oldPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    resultEl.innerHTML = `<p style="color:#e74c3c;">❌ ${data.error}</p>`;
+                    resultEl.style.display = 'block';
+                }
+            } catch {
+                resultEl.innerHTML = '<p style="color:#e74c3c;">网络错误</p>';
+                resultEl.style.display = 'block';
+            }
+        }
+
+        // ========== Dashboard ==========
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/analytics/overview');
+                const data = await res.json();
+                document.getElementById('totalCustomers').textContent = data.total_customers;
+                document.getElementById('todayNew').textContent = data.today_new;
+                document.getElementById('weekNew').textContent = data.week_new;
+                document.getElementById('monthNew').textContent = data.month_new;
+                document.getElementById('todayChecks').textContent = data.today_checks;
+                document.getElementById('totalChecks').textContent = data.total_checks;
+                document.getElementById('highDuplicate').textContent = data.high_duplicate;
+            } catch { /* dashboard load failed */ }
+        }
+
+        // ========== Customers CRUD ==========
+        let currentPage = 1;
+        let currentSearch = '';
+        let allCustomers = [];
+
+        async function loadCustomers(page = 1) {
+            currentPage = page;
+            const search = document.getElementById('customerSearch').value.trim();
+            const field = document.getElementById('searchField').value;
+            currentSearch = search;
+            try {
+                const url = `/api/customers?page=${page}&search=${encodeURIComponent(search)}&field=${field}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                allCustomers = data.customers;
+                renderCustomerTable(data);
+            } catch { showToast('加载客户列表失败', 'error'); }
+        }
+
+        function renderCustomerTable(data) {
+            const tbody = document.getElementById('customerTbody');
+            tbody.innerHTML = '';
+            data.customers.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="checkbox-column"><input type="checkbox" class="customer-checkbox" value="${c.id}"></td>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.phone || '-'}</td>
+                    <td>${c.company || '-'}</td>
+                    <td title="${c.content || ''}">${(c.content || '').slice(0, 20)}${(c.content || '').length > 20 ? '...' : ''}</td>
+                    <td>${c.created_at}</td>
+                    <td class="table-actions">
+                        <button class="btn btn-sm btn-primary" onclick="editCustomer(${c.id})">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const totalPages = Math.ceil(data.total / data.per_page);
+            const pg = document.getElementById('customerPagination');
+            pg.innerHTML = '';
+            for (let i = 1; i <= totalPages && i <= 20; i++) {
+                const span = document.createElement('span');
+                span.textContent = i;
+                if (i === currentPage) span.classList.add('active');
+                span.onclick = () => loadCustomers(i);
+                pg.appendChild(span);
+            }
+            updateBatchDeleteBtn();
+        }
+
+        function searchCustomers() {
+            loadCustomers(1);
+        }
+
+        document.getElementById('addCustomerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('cName').value.trim(),
+                phone: document.getElementById('cPhone').value.trim(),
+                email: document.getElementById('cEmail').value.trim(),
+                company: document.getElementById('cCompany').value.trim(),
+                notes: document.getElementById('cNotes').value.trim(),
+                content: document.getElementById('cContent').value
+            };
+            if (!data.name && !data.phone) { showToast('姓名和电话至少填一项', 'error'); return; }
+
+            try {
+                const res = await fetch('/api/customers', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+                const result = await res.json();
+                if (result.ok) {
+                    showToast('客户添加成功');
+                    document.getElementById('addCustomerForm').reset();
+                    loadCustomers(1);
+                } else if (result.duplicate_warning) {
+                    // 弹出去重警告
+                    showDuplicateWarning(result.duplicates, data);
+                } else { showToast(result.error || '添加失败', 'error'); }
+            } catch { showToast('网络错误', 'error'); }
+        };
+
+        async function editCustomer(id) {
+            const c = allCustomers.find(x => x.id === id);
+            if (!c) return;
+            document.getElementById('editId').value = c.id;
+            document.getElementById('editName').value = c.name;
+            document.getElementById('editPhone').value = c.phone || '';
+            document.getElementById('editEmail').value = c.email || '';
+            document.getElementById('editCompany').value = c.company || '';
+            document.getElementById('editNotes').value = c.notes || '';
+            document.getElementById('editContent').value = c.content || '';
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('editName').value.trim(),
+                phone: document.getElementById('editPhone').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                company: document.getElementById('editCompany').value.trim(),
+                notes: document.getElementById('editNotes').value.trim(),
+                content: document.getElementById('editContent').value
+            };
+            if (!data.name) { showToast('姓名不能为空', 'error'); return; }
+            try {
+                const res = await fetch(`/api/customers/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+                const result = await res.json();
+                if (result.ok) {
+                    showToast('修改成功');
+                    closeModal();
+                    loadCustomers(currentPage);
+                } else { showToast(result.error || '修改失败', 'error'); }
+            } catch { showToast('网络错误', 'error'); }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        // ====== 手机号归属地检测 ======
+        let _detectTimeout;
+        function detectCountry(phone) {
+            const resultEl = document.getElementById('phoneCountryResult');
+            if (!resultEl) return;
+            const digits = phone.replace(/[^\d+]/g, '');
+            if (digits.length < 4) {
+                resultEl.innerHTML = '';
+                return;
+            }
+            clearTimeout(_detectTimeout);
+            _detectTimeout = setTimeout(async () => {
+                resultEl.innerHTML = '<span style="color:#999;">\ud83d\udd0d 检测中...</span>';
+                try {
+                    const res = await fetch('/api/phone-lookup', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({phone: phone})
+                    });
+                    const data = await res.json();
+                    if (data.valid && data.country) {
+                        var info = '\ud83d\udccd ' + data.country;
+                        if (data.carrier) info += ' \u2022 ' + data.carrier;
+                        resultEl.innerHTML = '<span style="color:#27ae60;">\u2705 ' + info + '</span>';
+                    } else if (data.valid === false) {
+                        resultEl.innerHTML = '<span style="color:#e74c3c;">\u274c 无法识别</span>';
+                    } else {
+                        resultEl.innerHTML = '<span style="color:#999;">\ud83d\udccd ' + data.country + '</span>';
+                    }
+                } catch {
+                    resultEl.innerHTML = '<span style="color:#e74c3c;">\u274c 查询失败</span>';
+                }
+            }, 600);
+        }
+
+        // ====== 去重弹窗 ======
+        window._pendingDuplicateFormData = null;
+
+        function showDuplicateWarning(duplicates, formData) {
+            window._pendingDuplicateFormData = formData;
+            var html = '<h2 style="margin-bottom:12px;">\u26a0\ufe0f \u68c0\u6d4b\u5230\u91cd\u590d\u5ba2\u6237</h2>';
+            html += '<p style="color:#e67e22; margin-bottom:12px;">以下客户与您输入的姓名或电话重复：</p>';
+            html += '<div class=\"table-container\" style=\"max-height:250px; overflow-y:auto;\"><table style=\"font-size:13px;\"><thead><tr><th>姓名</th><th>电话</th><th>公司</th><th>匹配字段</th><th>创建时间</th></tr></thead><tbody>';
+            for (var i = 0; i < duplicates.length; i++) {
+                var d = duplicates[i];
+                html += '<tr><td>' + d.name + '</td><td>' + (d.phone || '-') + '</td><td>' + (d.company || '-') + '</td><td>' + d.field + '</td><td>' + (d.created_at || '-') + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+            html += '<div class=\"form-actions\" style=\"margin-top:16px;\">';
+            html += '<button class=\"btn btn-warning\" onclick=\"forceDuplicateAdd()\">仍然添加</button>';
+            html += '<button class=\"btn btn-outline\" onclick=\"closeModal()\">取消</button>';
+            html += '</div>';
+            document.getElementById('editModal').querySelector('.modal').innerHTML = html;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        async function forceDuplicateAdd() {
+            const data = window._pendingDuplicateFormData;
+            if (!data) return;
+            try {
+                const res = await fetch('/api/customers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({...data, force_add: true})
+                });
+                const result = await res.json();
+                if (result.ok) {
+                    showToast('客户添加成功（已忽略重复）');
+                    document.getElementById('addCustomerForm').reset();
+                    loadCustomers(1);
+                    closeModal();
+                    window._pendingDuplicateFormData = null;
+                } else {
+                    showToast(result.error || '添加失败', 'error');
+                    closeModal();
+                }
+            } catch {
+                showToast('网络错误', 'error');
+                closeModal();
+            }
+        }async function deleteCustomer(id) {
+            if (!confirm('确定要删除这个客户吗？')) return;
+            try {
+                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                if ((await res.json()).ok) {
+                    showToast('删除成功');
+                    loadCustomers(currentPage);
+                }
+            } catch { showToast('网络错误', 'error'); }
+        }
+
+        function toggleSelectAll() {
+            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = document.getElementById('selectAll').checked);
+            updateBatchDeleteBtn();
+        }
+        function updateBatchDeleteBtn() {
+            const checked = document.querySelectorAll('.customer-checkbox:checked').length;
+            document.getElementById('batchDeleteBtn').style.display = checked > 0 ? 'inline-block' : 'none';
+        }
+        async function batchDelete() {
+            const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (ids.length === 0) return;
+            if (!confirm(`确定要删除选中的 ${ids.length} 个客户吗？`)) return;
+            try {
+                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const result = await res.json();
+                if (result.ok) {
+                    showToast(`成功删除 ${result.deleted} 个客户`);
+                    document.getElementById('selectAll').checked = false;
+                    loadCustomers(1);
+                }
+            } catch { showToast('网络错误', 'error'); }
+        }
+
+        // ========== Check ==========
+        async function loadCheckSelects() {
+            try {
+                const res = await fetch('/api/customers?page=1&per_page=10000');
+                const data = await res.json();
+                const options = data.customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || '无电话'})</option>`).join('');
+                document.getElementById('checkCustomer1').innerHTML = '<option value="">选择客户A</option>' + options;
+                document.getElementById('checkCustomer2').innerHTML = '<option value="">选择客户B</option>' + options;
+                document.getElementById('checkCustomerSelect').innerHTML = '<option value="">选择客户</option>' + options;
+                document.getElementById('batchCheckSelect').innerHTML = '<option value="">选择客户</option>' + options;
+            } catch {}
+        }
+        async function loadBatchCheckSelect() {
+            if (!document.getElementById('batchCheckSelect').options.length) await loadCheckSelects();
+        }
+
+        async function quickCheck() {
+            const keyword = document.getElementById('checkText').value.trim();
+            if (!keyword) { showToast('请输入姓名或电话号码', 'error'); return; }
+            try {
+                const res = await fetch('/api/quick-check', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keyword: keyword})
+                });
+                const data = await res.json();
+                const el = document.getElementById('checkResult');
+                el.style.display = 'block';
+                if (data.total === 0) {
+                    el.innerHTML = '<div class="result-card"><p style="text-align:center; color:#888; padding:20px;">没有找到匹配的客户</p></div>';
+                } else {
+                    let html = '<div class="result-card"><h3 style="margin-bottom:8px;">查重结果 &mdash; 找到 ' + data.total + ' 个匹配</h3><div class="table-container"><table><thead><tr><th>姓名</th><th>电话</th><th>公司</th><th>匹配字段</th></tr></thead><tbody>';
+                    data.results.forEach(r => {
+                        html += '<tr><td><strong>' + r.name + '</strong></td><td>' + (r.phone || '-') + '</td><td>' + (r.company || '-') + '</td><td><span class="badge">' + (r.match_fields || []).join(', ') + '</span></td></tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                    el.innerHTML = html;
+                }
+            } catch { showToast('查重失败', 'error'); }
+        }
+
+        function renderCheckResult(c1, c2, data) {
+            return `
+                <div class="result-card">
+                    <h3 style="margin-bottom:8px;">查重结果</h3>
+                    <div class="result-row"><span class="result-label">${c1.name} (${c1.phone||'-'})</span><span>VS</span><span class="result-label">${c2.name} (${c2.phone||'-'})</span></div>
+                    <div class="result-row" style="border-top:1px solid #e0e5ff; padding-top:12px; margin-top:8px;">
+                        <span class="result-value">Jaccard: ${data.jaccard}%</span>
+                        <span class="result-value">SimHash: ${data.simhash}%</span>
+                    </div>
+                    <div class="result-row"><span class="result-value">综合相似度: ${data.overall}%</span></div>
+                    <div class="result-level">${data.level}</div>
+                </div>
+            `;
+        }
+        function renderSingleResult(data) {
+            return `
+                <div class="result-card">
+                    <h3 style="margin-bottom:8px;">查重结果</h3>
+                    <div class="result-row"><span class="result-label">客户</span><span class="result-value">${data.customer_name} (${data.customer_phone||'-'})</span></div>
+                    <div class="result-row">
+                        <span class="result-value">Jaccard: ${data.jaccard}%</span>
+                        <span class="result-value">SimHash: ${data.simhash}%</span>
+                    </div>
+                    <div class="result-row"><span class="result-value">综合相似度: ${data.overall}%</span></div>
+                    <div class="result-level">${data.level}</div>
+                </div>
+            `;
+        }
+
+        // ========== Batch Check ==========
+        async function quickBatchCheck() {
+            const text = document.getElementById('batchCheckText').value.trim();
+            if (!text) { showToast('请输入姓名或电话号码', 'error'); return; }
+            try {
+                const res = await fetch('/api/quick-check-all', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keywords: text})
+                });
+                const data = await res.json();
+                const el = document.getElementById('batchCheckNewResult');
+                el.style.display = 'block';
+                if (data.total === 0) {
+                    el.innerHTML = '<div class="result-card"><p style="text-align:center; color:#888; padding:20px;">没有找到匹配的客户</p></div>';
+                } else {
+                    let html = '<div class="result-card"><h3 style="margin-bottom:8px;">批量查重结果 &mdash; 搜索' + data.keywords_count + '个关键词，找到' + data.total + '个匹配</h3><div class="table-container"><table><thead><tr><th>关键词</th><th>匹配客户</th><th>电话</th><th>公司</th><th>匹配字段</th></tr></thead><tbody>';
+                    data.results.forEach(r => {
+                        html += '<tr><td style="max-width:120px; overflow:hidden;">' + r.keyword + '</td><td><strong>' + r.name + '</strong></td><td>' + (r.phone || '-') + '</td><td>' + (r.company || '-') + '</td><td><span class="badge">' + (r.match_fields || []).join(', ') + '</span></td></tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                    el.innerHTML = html;
+                }
+            } catch { showToast('批量查重失败', 'error'); }
+        }
+
+        // ========== History ==========
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/history?limit=100');
+                const data = await res.json();
+                const tbody = document.getElementById('historyTbody');
+                tbody.innerHTML = '';
+                data.forEach(h => {
+                    const tr = document.createElement('tr');
+                    const nameA = h.c1_name || `ID:${h.customer1_id}`;
+                    const nameB = h.c2_name ? h.c2_name : (h.customer2_id ? `ID:${h.customer2_id}` : '自定义文本');
+                    const phoneA = h.c1_phone ? `(${h.c1_phone})` : '';
+                    const phoneB = h.c2_phone ? `(${h.c2_phone})` : '';
+                    tr.innerHTML = `
+                        <td>${h.checked_at}</td>
+                        <td>${nameA} ${phoneA}</td>
+                        <td>${nameB} ${phoneB}</td>
+                        <td><strong>${h.similarity}%</strong></td>
+                        <td>${h.level}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch { showToast('加载历史失败', 'error'); }
+        }
+
+        // ========== Analytics ==========
+        let chartInstances = {};
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/analytics/overview');
+                const data = await res.json();
+
+                // Summary
+                document.getElementById('analyticsSummary').innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="number">${data.total_customers}</div><div class="label">总客户数</div></div>
+                        <div class="stat-card"><div class="number">${data.total_checks}</div><div class="label">总查重次数</div></div>
+                        <div class="stat-card"><div class="number">${data.high_duplicate}</div><div class="label">高度重复 (≥85%)</div></div>
+                        <div class="stat-card"><div class="number">${data.mid_duplicate}</div><div class="label">中度重复 (60-85%)</div></div>
+                        <div class="stat-card"><div class="number">${data.low_duplicate}</div><div class="label">轻度重复 (30-60%)</div></div>
+                    </div>
+                `;
+
+                // Destroy old charts
+                Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch {} });
+                chartInstances = {};
+
+                // Daily New Customers Chart
+                const dates = data.daily_new.map(d => d.date.slice(5));
+                const counts = data.daily_new.map(d => d.count);
+                chartInstances.dailyNew = new Chart(document.getElementById('dailyNewChart'), {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: '新增客户',
+                            data: counts,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102,126,234,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                            x: { ticks: { maxTicksLimit: 15, font: { size: 10 } } }
+                        }
+                    }
+                });
+
+                // Daily Checks Chart
+                const checkCounts = data.daily_checks.map(d => d.count);
+                chartInstances.dailyCheck = new Chart(document.getElementById('dailyCheckChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: '查重次数',
+                            data: checkCounts,
+                            backgroundColor: 'rgba(102,126,234,0.6)',
+                            borderColor: '#667eea',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                            x: { ticks: { maxTicksLimit: 15, font: { size: 10 } } }
+                        }
+                    }
+                });
+
+                // Distribution Pie Chart
+                const dist = data.distribution;
+                chartInstances.dist = new Chart(document.getElementById('distChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['高度重复 (≥85%)', '中度重复 (60-85%)', '轻度重复 (30-60%)', '基本不重复 (<30%)'],
+                        datasets: [{
+                            data: [dist.high, dist.mid, dist.low, dist.none],
+                            backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#95a5a6']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } }
+                        }
+                    }
+                });
+
+                // Top Checked Customers
+                const top = data.top_checked || [];
+                chartInstances.topChecked = new Chart(document.getElementById('topCheckedChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: top.map(t => t.name),
+                        datasets: [{
+                            label: '查重次数',
+                            data: top.map(t => t.check_count),
+                            backgroundColor: 'rgba(231,76,60,0.6)',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { font: { size: 10 } } },
+                            x: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+            } catch { showToast('加载图表分析失败', 'error'); }
+        }
+
+        // ========== Import ==========
+        // Drag & drop
+        const dropzone = document.getElementById('dropzone');
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                document.getElementById('importFile').files = e.dataTransfer.files;
+                uploadImport(e.dataTransfer.files[0]);
+            }
+        });
+
+        function onFileSelect(input) {
+            if (input.files.length) uploadImport(input.files[0]);
+        }
+
+        async function uploadImport(file) {
+            const resultEl = document.getElementById('importResult');
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['csv', 'xlsx', 'txt'].includes(ext)) {
+                resultEl.className = 'import-result error';
+                resultEl.innerHTML = `<p style="color:#e74c3c;">❌ 仅支持 CSV 和 XLSX 格式</p>`;
+                return;
+            }
+
+            resultEl.className = 'import-result success';
+            resultEl.innerHTML = `<p>⏳ 正在导入 <strong>${file.name}</strong>，请稍候...</p>`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.ok) {
+                    let html = `<p>✅ 导入完成：成功 ${data.imported}/${data.total} 条</p>`;
+                    if (data.has_errors && data.errors.length > 0) {
+                        html += `<div style="margin-top:8px; max-height:200px; overflow-y:auto;"><p style="color:#e74c3c; font-weight:500;">错误详情：</p><ul style="font-size:12px; color:#888;">`;
+                        data.errors.forEach(err => { html += `<li>${err}</li>`; });
+                        if (data.error_summary) html += `<li>${data.error_summary}</li>`;
+                        html += `</ul></div>`;
+                    }
+                    resultEl.className = 'import-result success';
+                    resultEl.innerHTML = html;
+                    if (data.imported > 0) loadCustomers(1);
+                } else {
+                    resultEl.className = 'import-result error';
+                    resultEl.innerHTML = `<p style="color:#e74c3c;">❌ ${data.error || '导入失败'}</p>`;
+                }
+            } catch {
+                resultEl.className = 'import-result error';
+                resultEl.innerHTML = `<p style="color:#e74c3c;">❌ 网络错误，导入失败</p>`;
+            }
+        }
+
+        // ========== Export ==========
+        async function exportExcel() {
+            try {
+                const res = await fetch('/api/export/excel');
+                if (!res.ok) { showToast('导出失败', 'error'); return; }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const timestamp = new Date().toISOString().slice(0, 10);
+                a.download = `客户数据_${timestamp}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('✅ 导出成功');
+            } catch { showToast('导出失败', 'error'); }
+        }
+
+        // ========== Init ==========
+        loadDashboard();
+    </script>
+</body>
+</html>
