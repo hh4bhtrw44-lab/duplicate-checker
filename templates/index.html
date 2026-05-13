@@ -1388,8 +1388,17 @@
         }
         async function exportExcelConfirm() {
             const pwd = document.getElementById('dataPasswordInput').value;
+            var url = '/api/export/excel?pwd=' + encodeURIComponent(pwd);
+            var df = document.getElementById('exportDateFrom') ? document.getElementById('exportDateFrom').value : '';
+            var dt = document.getElementById('exportDateTo') ? document.getElementById('exportDateTo').value : '';
+            var reg = document.getElementById('exportRegion') ? document.getElementById('exportRegion').value : '';
+            var sch = document.getElementById('exportSearch') ? document.getElementById('exportSearch').value.trim() : '';
+            if (df) url += '&start_date=' + encodeURIComponent(df);
+            if (dt) url += '&end_date=' + encodeURIComponent(dt);
+            if (reg) url += '&region=' + encodeURIComponent(reg);
+            if (sch) url += '&search=' + encodeURIComponent(sch);
             try {
-                const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
+                const res = await fetch(url);
                 if (!res.ok) { showToast('导出失败', 'error'); return; }
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
