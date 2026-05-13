@@ -560,9 +560,29 @@ def api_detect_regions():
     for r in rows:
         phone = r['phone']
         region = ''
+        clean = phone.replace('+', '')
         try:
-            parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
-            region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
+            try:
+                parsed = phonenumbers.parse('+' + clean, None)
+                region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
+            except:
+                pass
+            if not region:
+                if len(clean) == 11 and clean.startswith('1'):
+                    parsed = phonenumbers.parse(clean, 'CN')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                elif len(clean) == 8:
+                    parsed = phonenumbers.parse(clean, 'HK')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                elif len(clean) == 9 and clean.startswith('9'):
+                    parsed = phonenumbers.parse(clean, 'TW')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                elif len(clean) == 10:
+                    parsed = phonenumbers.parse(clean, 'US')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
+                else:
+                    parsed = phonenumbers.parse(clean, 'CN')
+                    region = geocoder.description_for_number(parsed, 'zh') or ''
         except:
             pass
         if region:
