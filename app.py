@@ -461,41 +461,73 @@ def api_quick_add():
         if not line:
             continue
 
-        all_segments = re.split(r'[\s\t,，|;；]+', line)
-        phone_candidates = []
-        name_candidates = []
-        prefix_buf = ''  # 存+86等短前缀
+        # 先处理整行：如果有+号但被空格/符号分割，先把所有数字段合并
+        raw_digits = re.sub(r'[\+\-\s\(\)\.\/]', '', line)
+        # 如果整行去掉符号后全是数字，直接当作号码处理
+        if raw_digits.isdigit() and len(raw_digits) >= 5:
+            phone = clean_phone(raw_digits)
+            name = ''
+        else:
+            all_segments = re.split(r'[\s\t,，|;；]+', line)
+            phone_candidates = []
+            name_candidates = []
+            prefix_buf = ''  # 存+86等短前缀
+            digit_segments = []  # 收集连续数字段
 
-        for seg in all_segments:
-            seg = seg.strip()
-            if not seg:
-                continue
-            # 判断是否是国际区号前缀（+86、+852等）
-            if re.match(r'^\+', seg) and len(seg) <= 5:
-                prefix_buf = re.sub(r'[\+\s]', '', seg)
-                continue
-            digit_only = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
-            if digit_only.isdigit() and len(digit_only) >= 5:
-                phone_candidates.append(prefix_buf + digit_only)
-                prefix_buf = ''
-            elif seg.isdigit() and len(seg) >= 5:
-                phone_candidates.append(prefix_buf + seg)
-                prefix_buf = ''
-            else:
-                name_candidates.append(seg)
+            def flush_digits():
+                nonlocal prefix_buf
+                if digit_segments:
+                    combined = ''.join(digit_segments)
+                    digit_segments.clear()
+                    if len(combined) >= 5:
+                        phone_candidates.append(prefix_buf + combined)
+                        prefix_buf = ''
+                    else:
+                        name_candidates.append(combined)
 
-        # 如果前缀还留着，说明没有电话跟它，当姓名处理
-        if prefix_buf and not phone_candidates:
-            name_candidates.insert(0, '+' + prefix_buf)
+            for seg in all_segments:
+                seg = seg.strip()
+                if not seg:
+                    continue
+                # 判断是否是国际区号前缀（+86、+852等）
+                if re.match(r'^\+', seg) and len(seg) <= 5:
+                    flush_digits()
+                    prefix_buf = re.sub(r'[\+\s]', '', seg)
+                    continue
+                digit_only = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
+                if seg == '+' or (digit_only.isdigit() and seg.startswith('+')):
+                    flush_digits()
+                    # 去掉+号后的数字
+                    prefix_buf = digit_only
+                elif digit_only.isdigit() and len(digit_only) < 11:
+                    # 短数字段合并起来
+                    digit_segments.append(digit_only)
+                elif digit_only.isdigit():
+                    flush_digits()
+                    phone_candidates.append(prefix_buf + digit_only)
+                    prefix_buf = ''
+                elif seg.isdigit():
+                    digit_segments.append(seg)
+                else:
+                    flush_digits()
+                    name_candidates.append(seg)
+            flush_digits()
 
-        if not phone_candidates:
-            combined = ''.join(name_candidates)
-            found_nums = re.findall(r'\d{5,}', combined)
-            if found_nums:
-                phone_candidates = found_nums
-                for n in found_nums:
-                    combined = combined.replace(n, '', 1)
-                name_candidates = [combined.strip()] if combined.strip() else []
+            # 如果前缀还留着，说明没有电话跟它，当姓名处理
+            if prefix_buf and not phone_candidates:
+                name_candidates.insert(0, '+' + prefix_buf)
+
+            if not phone_candidates:
+                combined = ''.join(name_candidates)
+                found_nums = re.findall(r'\d{5,}', combined)
+                if found_nums:
+                    phone_candidates = found_nums
+                    for n in found_nums:
+                        combined = combined.replace(n, '', 1)
+                    name_candidates = [combined.strip()] if combined.strip() else []
+
+            name = ' '.join(name_candidates) if name_candidates else ''
+            phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
 
         name = ' '.join(name_candidates) if name_candidates else ''
         phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
