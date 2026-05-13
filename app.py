@@ -786,6 +786,10 @@ def api_export_excel():
 @app.route('/api/customers/import', methods=['POST'])
 @login_required
 def api_import_customers():
+    pwd = request.form.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法导入数据"}), 403
+
     if 'file' not in request.files:
         return jsonify({"error": "请上传文件"}), 400
 
