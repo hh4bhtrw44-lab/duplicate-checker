@@ -326,6 +326,9 @@ def clean_phone(phone):
         return phone
     return re.sub(r'[\s\+\-\(\)]', '', phone)
 
+import phonenumbers
+from phonenumbers import geocoder
+
 def detect_phone_region(phone):
     """检测号码归属地，返回'国家 城市'格式的中文描述"""
     if not phone:
