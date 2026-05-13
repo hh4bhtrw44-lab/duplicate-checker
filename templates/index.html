@@ -1509,7 +1509,6 @@
         }
 
         // ========== Init ==========
-        loadDashboard();
             function jumpToPage() {
             var input = document.getElementById('pageJumpInput');
             if (!input) return;
@@ -1588,6 +1587,10 @@
             } catch { showToast('加载重复数据失败', 'error'); }
         }
 
+        }
+
+        // ========== Init ==========
+        loadDashboard();
     </script>
 </body>
 </html>
