@@ -28,7 +28,11 @@ else:
     with open(SECRET_KEY_FILE, 'w') as f:
         f.write(app.secret_key)
 
-app.config['DATABASE'] = os.path.join(app.root_path, 'data.db')
+# 持久化存储：优先使用 /app/data 目录
+DATA_DIR = '/app/data'
+if not os.path.exists(DATA_DIR):
+    DATA_DIR = app.root_path
+app.config['DATABASE'] = os.path.join(DATA_DIR, 'data.db')
 
 # ========= 数据库初始化 =========
 
