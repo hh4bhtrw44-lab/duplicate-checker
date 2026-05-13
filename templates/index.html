@@ -340,6 +340,18 @@
 
     <!-- Tab: Customers -->
     <div id="tab-customers" class="tab-content">
+        <div class="card" style="border: 2px dashed #667eea; background: #f8f9ff;">
+            <h2 style="color:#667eea; margin-bottom:8px;">⚡ 快速添加</h2>
+            <p style="font-size:13px; color:#888; margin-bottom:12px;">粘贴客户信息，系统自动识别：电话号码→电话栏，其余内容→姓名栏。每行一个客户。</p>
+            <div class="form-group">
+                <textarea id="quickAddText" rows="4" placeholder="每行输入一个客户信息，例如：
+张三 13800138000
+李四 13912345678 某某公司
++8615901234567 王五" style="width:100%; padding:10px; border:1px solid #d0d5ff; border-radius:6px; font-size:14px;"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="quickAddCustomers()" style="width:100%; padding:10px; font-size:15px;">⚡ 批量快速添加</button>
+            <div id="quickAddResult" style="display:none; margin-top:10px;"></div>
+        </div>
         <div class="card">
             <h2>添加新客户</h2>
             <form id="addCustomerForm">
@@ -361,6 +373,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
                 <h2 style="margin: 0;">客户列表</h2>
                 <div>
+                    <button class="btn btn-sm" style="background:#ff9800; color:white; border:none; padding:6px 14px; border-radius:4px; cursor:pointer;" onclick="fixCustomerData()">🔧 修复数据</button>
                     <button class="btn btn-danger btn-sm" id="batchDeleteBtn" style="display:none;" onclick="batchDelete()">批量删除</button>
                 </div>
             </div>
@@ -720,6 +733,43 @@
                 } else { showToast(result.error || '添加失败', 'error'); }
             } catch { showToast('网络错误', 'error'); }
         };
+
+        // ========== 快速添加 & 自动修复 ==========
+        async function quickAddCustomers() {
+            const text = document.getElementById('quickAddText').value.trim();
+            if (!text) { showToast('请粘贴客户信息', 'error'); return; }
+            try {
+                const res = await fetch('/api/customers/quick-add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({lines: text})
+                });
+                const data = await res.json();
+                const el = document.getElementById('quickAddResult');
+                el.style.display = 'block';
+                if (data.ok) {
+                    el.innerHTML = '<div class="result-card"><p style="color:#4CAF50;">✅ 成功添加 ' + data.imported + '/' + data.total + ' 条</p></div>';
+                    document.getElementById('quickAddText').value = '';
+                    searchCustomers();
+                } else {
+                    el.innerHTML = '<div class="result-card"><p style="color:#f44336;">❌ ' + (data.error || '添加失败') + '</p></div>';
+                }
+            } catch { showToast('网络错误', 'error'); }
+        }
+
+        async function fixCustomerData() {
+            if (!confirm('确定要自动修复数据吗？系统会尝试将混在电话栏/姓名栏的数据拆分到正确位置。')) return;
+            try {
+                const res = await fetch('/api/customers/fix-data', {method: 'POST'});
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message, 'success');
+                    searchCustomers();
+                } else {
+                    showToast('修复失败', 'error');
+                }
+            } catch { showToast('网络错误', 'error'); }
+        }
 
         async function editCustomer(id) {
             const c = allCustomers.find(x => x.id === id);

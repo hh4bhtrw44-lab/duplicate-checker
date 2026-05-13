@@ -315,6 +315,132 @@ def clean_phone(phone):
         return phone
     return re.sub(r'[\s\+\-\(\)]', '', phone)
 
+@app.route('/api/customers/fix-data', methods=['POST'])
+@login_required
+def api_fix_customer_data():
+    """自动修复数据：将电话栏中的姓名+电话混合数据拆分"""
+    db = get_db()
+    rows = db.execute('SELECT id, name, phone FROM customers').fetchall()
+    fixed = 0
+    import re as re_mod
+    for r in rows:
+        cid = r['id']
+        name = (r['name'] or '').strip()
+        phone = (r['phone'] or '').strip()
+
+        # 情况1：电话栏里混了姓名
+        if phone:
+            parts = re_mod.split(r'[\s\t,，|;；]+', phone)
+            phone_parts = []
+            name_parts = []
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+                    phone_parts.append(p)
+                else:
+                    name_parts.append(p)
+
+            if phone_parts and name_parts:
+                new_phone = clean_phone(' '.join(phone_parts))
+                new_name = ' '.join(name_parts)
+                if name:
+                    new_name = name + ' ' + new_name
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+                fixed += 1
+            elif not phone_parts and name_parts and not name:
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (name_parts[0], '', cid))
+                fixed += 1
+
+        # 情况2：姓名栏里混了电话
+        if name:
+            parts = re_mod.split(r'[\s\t,，|;；]+', name)
+            phone_parts = []
+            name_parts = []
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+                    phone_parts.append(p)
+                else:
+                    name_parts.append(p)
+
+            if phone_parts and name_parts:
+                new_name = ' '.join(name_parts)
+                existing_phone = db.execute('SELECT phone FROM customers WHERE id=?', (cid,)).fetchone()['phone'] or ''
+                new_phone = clean_phone((existing_phone + ' ' + ' '.join(phone_parts)).strip())
+                if existing_phone and existing_phone == new_phone:
+                    continue
+                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+                fixed += 1
+
+    db.commit()
+    return jsonify({'ok': True, 'fixed': fixed, 'message': f'已修复 {fixed} 条数据'})
+
+@app.route('/api/customers/quick-add', methods=['POST'])
+@login_required
+def api_quick_add():
+    """快速添加：自动识别电话和姓名"""
+    data = request.get_json()
+    lines = data.get('lines', '')
+    if not lines:
+        return jsonify({'error': '请输入客户信息'}), 400
+
+    lines = [l.strip() for l in lines.split('\n') if l.strip()]
+    db = get_db()
+    imported = 0
+    errors = []
+    import re as re_mod
+
+    for line in lines:
+        parts = re_mod.split(r'[\s\t,，|;；]+', line)
+        phone_parts = []
+        name_parts = []
+
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+            if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
+                phone_parts.append(p)
+            elif re_mod.match(r'^[\d\-]{6,}$', p):
+                phone_parts.append(p)
+            else:
+                name_parts.append(p)
+
+        name = ' '.join(name_parts) if name_parts else ''
+        phone = clean_phone(' '.join(phone_parts)) if phone_parts else ''
+
+        if not name and not phone:
+            errors.append(line[:20] + '... 无有效数据')
+            continue
+
+        # 去重检查
+        dup_found = False
+        if name:
+            same = db.execute('SELECT id, name FROM customers WHERE name=?', (name,)).fetchall()
+            if same:
+                dup_found = True
+        if phone and not dup_found:
+            same = db.execute('SELECT id, name FROM customers WHERE phone=? AND phone!=""', (phone,)).fetchall()
+            if same:
+                dup_found = True
+
+        if dup_found:
+            continue
+
+        try:
+            db.execute('INSERT INTO customers (name, phone, company) VALUES (?, ?, ?)',
+                       (name, phone, ''))
+            imported += 1
+        except Exception as e:
+            errors.append(f'{name}: {str(e)[:30]}')
+
+    db.commit()
+    return jsonify({'ok': True, 'imported': imported, 'total': len(lines), 'errors': errors[:10]})
+
 @app.route('/api/customers', methods=['POST'])
 @login_required
 def api_add_customer():
