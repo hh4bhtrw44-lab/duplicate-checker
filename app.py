@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+"""八方来财客户查重系统 - v2.1 (修复快速添加+号Bug + 地图调用)"""
 """客户查重管理系统 - Flask + SQLite (完整功能版)"""
 import re
 import os
