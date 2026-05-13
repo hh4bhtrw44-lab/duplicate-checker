@@ -104,6 +104,15 @@ def init_db():
             FOREIGN KEY (customer1_id) REFERENCES customers(id),
             FOREIGN KEY (customer2_id) REFERENCES customers(id)
         );
+
+        CREATE TABLE IF NOT EXISTS check_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            check_date TEXT,
+            check_type TEXT,
+            duplicate_count INTEGER DEFAULT 0,
+            total_checked INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
     try:
         c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
@@ -275,43 +284,60 @@ def api_customers():
     per_page = int(request.args.get('per_page', 20))
     offset = (page - 1) * per_page
 
+    # 高级搜索参数
+    region_filter = request.args.get('region', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to = request.args.get('date_to', '').strip()
+    company_filter = request.args.get('company', '').strip()
+
     # 限制最大每页条数
     if per_page > 100:
         per_page = 100
 
+    where_clauses = []
+    params = []
+
     if search:
         if search_field == 'name':
-            condition = "name LIKE ?"
+            where_clauses.append("name LIKE ?")
+            params.append(f'%{search}%')
         elif search_field == 'phone':
-            condition = "phone LIKE ?"
+            where_clauses.append("phone LIKE ?")
+            params.append(f'%{search}%')
         elif search_field == 'email':
-            condition = "email LIKE ?"
+            where_clauses.append("email LIKE ?")
+            params.append(f'%{search}%')
         elif search_field == 'company':
-            condition = "company LIKE ?"
+            where_clauses.append("company LIKE ?")
+            params.append(f'%{search}%')
         else:
-            condition = "name LIKE ? OR phone LIKE ? OR email LIKE ? OR company LIKE ? OR notes LIKE ?"
+            where_clauses.append("(name LIKE ? OR phone LIKE ? OR email LIKE ? OR company LIKE ? OR notes LIKE ?)")
+            params.extend([f'%{search}%'] * 5)
+    
+    if region_filter:
+        where_clauses.append("phone_region = ?")
+        params.append(region_filter)
+    
+    if date_from:
+        where_clauses.append("DATE(created_at) >= ?")
+        params.append(date_from)
+    
+    if date_to:
+        where_clauses.append("DATE(created_at) <= ?")
+        params.append(date_to)
+    
+    if company_filter:
+        where_clauses.append("company LIKE ?")
+        params.append(f'%{company_filter}%')
 
-        if search_field == 'all':
-            rows = db.execute(
-                f"SELECT * FROM customers WHERE {condition} ORDER BY id DESC LIMIT ? OFFSET ?",
-                (f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', per_page, offset)
-            ).fetchall()
-            total = db.execute(
-                f"SELECT COUNT(*) FROM customers WHERE {condition}",
-                (f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%', f'%{search}%')
-            ).fetchone()[0]
-        else:
-            rows = db.execute(
-                f"SELECT * FROM customers WHERE {condition} ORDER BY id DESC LIMIT ? OFFSET ?",
-                (f'%{search}%', per_page, offset)
-            ).fetchall()
-            total = db.execute(
-                f"SELECT COUNT(*) FROM customers WHERE {condition}",
-                (f'%{search}%',)
-            ).fetchone()[0]
-    else:
-        rows = db.execute("SELECT * FROM customers ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset)).fetchall()
-        total = db.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
+    where_sql = ""
+    if where_clauses:
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+    rows = db.execute(f"SELECT * FROM customers {where_sql} ORDER BY id DESC LIMIT ? OFFSET ?",
+                      params + [per_page, offset]).fetchall()
+    total = db.execute(f"SELECT COUNT(*) FROM customers {where_sql}",
+                       params).fetchone()[0]
 
     return jsonify({
         "customers": [dict(r) for r in rows],
@@ -747,7 +773,35 @@ def api_export_excel():
         return jsonify({"error": "导出功能需要安装 openpyxl：pip install openpyxl"}), 500
 
     db = get_db()
-    customers = db.execute("SELECT * FROM customers ORDER BY id DESC").fetchall()
+    
+    # 筛选参数
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    region = request.args.get('region', '').strip()
+    search = request.args.get('search', '').strip()
+
+    where_clauses = []
+    params = []
+    
+    if start_date:
+        where_clauses.append("DATE(created_at) >= ?")
+        params.append(start_date)
+    if end_date:
+        where_clauses.append("DATE(created_at) <= ?")
+        params.append(end_date)
+    if region:
+        where_clauses.append("phone_region = ?")
+        params.append(region)
+    if search:
+        where_clauses.append("(name LIKE ? OR phone LIKE ? OR company LIKE ? OR email LIKE ?)")
+        params.extend([f'%{search}%'] * 4)
+    
+    where_sql = ""
+    if where_clauses:
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+    
+    customers = db.execute(f"SELECT * FROM customers {where_sql} ORDER BY id DESC",
+                           params).fetchall()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1164,6 +1218,11 @@ def api_check():
     result = check_duplicate(customer_text, compare_text)
     db.execute("INSERT INTO check_history (customer1_id, similarity, level) VALUES (?, ?, ?)",
                (customer_id, result['overall'], result['level']))
+    # Log to check_logs
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    duplicate_count = 1 if result['overall'] >= 60 else 0
+    db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
+               (today_date, 'single', duplicate_count, 1))
     db.commit()
 
     result['customer_name'] = customer['name']
@@ -1195,6 +1254,11 @@ def api_check_between():
     result = check_duplicate(text1, text2)
     db.execute("INSERT INTO check_history (customer1_id, customer2_id, similarity, level) VALUES (?, ?, ?, ?)",
                (id1, id2, result['overall'], result['level']))
+    # Log to check_logs
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    duplicate_count = 1 if result['overall'] >= 60 else 0
+    db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
+               (today_date, 'between', duplicate_count, 1))
     db.commit()
 
     result['customer1'] = {'name': c1['name'], 'phone': c1['phone'], 'company': c1['company']}
@@ -1232,6 +1296,14 @@ def api_batch_check():
         })
 
     results.sort(key=lambda x: x['similarity'], reverse=True)
+
+    # Log to check_logs
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    high_dup = sum(1 for r in results if r['similarity'] >= 60)
+    db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
+               (today_date, 'batch', high_dup, len(results)))
+    db.commit()
+
     return jsonify({
         'target': {'id': target['id'], 'name': target['name'], 'phone': target['phone']},
         'results': [r for r in results if r['similarity'] > 10]
@@ -1282,12 +1354,20 @@ def api_quick_check():
             'created_at': r['created_at']
         })
 
+    # Log to check_logs
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    dup_count = sum(1 for r in results if '姓名' in r.get('match_fields', []) or '电话' in r.get('match_fields', []))
+    db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
+               (today_date, 'quick', dup_count, len(results)))
+    db.commit()
+
     return jsonify({
         'keyword': keyword,
         'total': len(results),
         'results': results,
         'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
+
 
 
 @app.route('/api/quick-check-all', methods=['POST'])
@@ -1334,6 +1414,12 @@ def api_quick_check_all():
                 'created_at': r['created_at'],
             })
 
+    # Log to check_logs
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
+               (today_date, 'batch_quick', len(all_results), len(lines)))
+    db.commit()
+
     return jsonify({
         'keywords_count': len(lines),
         'total': len(all_results),
@@ -1355,6 +1441,346 @@ def api_history():
         ORDER BY h.checked_at DESC LIMIT ?
     """, (limit,)).fetchall()
     return jsonify([dict(r) for r in rows])
+
+# ========= 功能1: 批量删除重复客户 =========
+@app.route('/api/customers/batch-clean-duplicates', methods=['GET'])
+@login_required
+def api_batch_clean_duplicates():
+    """扫描所有重复客户（同名/同电话），返回重复组"""
+    db = get_db()
+    
+    # 按姓名分组查找重复
+    name_groups = db.execute("""
+        SELECT name, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+        FROM customers
+        WHERE name IS NOT NULL AND name != ''
+        GROUP BY name
+        HAVING cnt > 1
+    """).fetchall()
+    
+    # 按电话分组查找重复
+    phone_groups = db.execute("""
+        SELECT phone, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+        FROM customers
+        WHERE phone IS NOT NULL AND phone != ''
+        GROUP BY phone
+        HAVING cnt > 1
+    """).fetchall()
+    
+    groups = []
+    
+    for g in name_groups:
+        ids = [int(x) for x in g['ids'].split(',')]
+        customers = db.execute(
+            f"SELECT * FROM customers WHERE id IN ({','.join('?' * len(ids))})",
+            ids
+        ).fetchall()
+        groups.append({
+            'type': 'name',
+            'key': g['name'],
+            'count': g['cnt'],
+            'customers': [dict(c) for c in customers]
+        })
+    
+    for g in phone_groups:
+        ids = [int(x) for x in g['ids'].split(',')]
+        customers = db.execute(
+            f"SELECT * FROM customers WHERE id IN ({','.join('?' * len(ids))})",
+            ids
+        ).fetchall()
+        groups.append({
+            'type': 'phone',
+            'key': g['phone'],
+            'count': g['cnt'],
+            'customers': [dict(c) for c in customers]
+        })
+    
+    return jsonify({
+        'total_groups': len(groups),
+        'groups': groups
+    })
+
+@app.route('/api/customers/batch-clean-duplicates/action', methods=['POST'])
+@login_required
+def api_batch_clean_duplicates_action():
+    """执行批量清理操作"""
+    data = request.get_json()
+    action = data.get('action', '')  # 'keep_one' 或 'delete_all'
+    customer_ids = data.get('ids', [])
+    pwd = data.get('pwd', '')
+    
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误"}), 403
+    
+    if not customer_ids:
+        return jsonify({"error": "请选择客户"}), 400
+    
+    db = get_db()
+    
+    if action == 'keep_one':
+        # 保留第一个，删除其余
+        keep_id = customer_ids[0]
+        delete_ids = customer_ids[1:]
+        if delete_ids:
+            placeholders = ','.join('?' * len(delete_ids))
+            db.execute(f"DELETE FROM customers WHERE id IN ({placeholders})", delete_ids)
+            db.execute("DELETE FROM check_history WHERE customer1_id IN ({}) OR customer2_id IN ({})".format(
+                ','.join('?' * len(delete_ids)), ','.join('?' * len(delete_ids))),
+                delete_ids + delete_ids)
+    elif action == 'delete_all':
+        placeholders = ','.join('?' * len(customer_ids))
+        db.execute(f"DELETE FROM customers WHERE id IN ({placeholders})", customer_ids)
+        db.execute("DELETE FROM check_history WHERE customer1_id IN ({}) OR customer2_id IN ({})".format(
+            ','.join('?' * len(customer_ids)), ','.join('?' * len(customer_ids))),
+            customer_ids + customer_ids)
+    else:
+        return jsonify({"error": "无效的操作类型"}), 400
+    
+    db.commit()
+    return jsonify({"ok": True, "deleted": len(customer_ids) - (1 if action == 'keep_one' else 0)})
+
+
+# ========= 功能2: 导出增强 =========
+# 增强 /api/export/excel 路由（通过修改已有路由）
+# 已在原路由中增加筛选参数支持
+
+
+# ========= 功能3: 导入预览 =========
+@app.route('/api/customers/import-preview', methods=['POST'])
+@login_required
+def api_import_preview():
+    """解析文件返回预览数据，不写入数据库"""
+    if 'file' not in request.files:
+        return jsonify({"error": "请上传文件"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "文件不能为空"}), 400
+    
+    records = []
+    filename = file.filename.lower()
+    
+    try:
+        if filename.endswith('.csv'):
+            content = file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(content))
+            for row in reader:
+                records.append(row)
+        elif filename.endswith('.xlsx'):
+            try:
+                import openpyxl
+            except ImportError:
+                return jsonify({"error": "导入xlsx需要安装openpyxl"}), 500
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+            header_row = [cell.value for cell in ws[1]]
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                record = {}
+                for i, val in enumerate(row):
+                    if i < len(header_row) and header_row[i]:
+                        record[header_row[i]] = str(val) if val is not None else ''
+                if record:
+                    records.append(record)
+        elif filename.endswith('.txt'):
+            content = file.read().decode('utf-8-sig')
+            lines = [line.strip() for line in content.split('\n') if line.strip()]
+            for line in lines:
+                record = {}
+                parts = None
+                for sep in ['\t', ',', '|', '，', ';', '；']:
+                    test_parts = line.split(sep)
+                    if len(test_parts) >= 2:
+                        parts = test_parts
+                        break
+                if parts is None:
+                    import re as re2
+                    test_parts = re2.split(r'\s{2,}', line)
+                    if len(test_parts) >= 2:
+                        parts = test_parts
+                if parts is None:
+                    test_parts = line.split()
+                    if len(test_parts) >= 2:
+                        first = test_parts[0].strip()
+                        if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first.replace(' ', '')):
+                            parts = test_parts
+                        else:
+                            for i, p in enumerate(test_parts):
+                                p = p.strip()
+                                if re.match(r'^[\+\d][\d\s\-\(\)]{6,}$', p.replace(' ', '')) and i > 0:
+                                    parts = [' '.join(test_parts[:i]), p] + test_parts[i+1:]
+                                    break
+                            if parts is None:
+                                parts = [line]
+                if parts is None:
+                    parts = [line]
+                if len(parts) >= 2:
+                    first = parts[0].strip()
+                    second = parts[1].strip()
+                    if re.match(r'^[\+\d][\d\s\-\(\)]{4,}$', first):
+                        record['电话'] = first
+                        record['姓名'] = second
+                    else:
+                        record['姓名'] = first
+                        record['电话'] = second
+                    if len(parts) >= 3:
+                        record['公司'] = parts[2].strip()
+                    if len(parts) >= 4:
+                        record['备注'] = parts[3].strip()
+                    records.append(record)
+                elif len(parts) == 1 and line:
+                    record['姓名'] = parts[0].strip()
+                    records.append(record)
+        else:
+            return jsonify({"error": "仅支持 CSV、XLSX 和 TXT 格式"}), 400
+    except Exception as e:
+        return jsonify({"error": f"文件解析失败: {str(e)}"}), 400
+    
+    if not records:
+        return jsonify({"error": "文件中没有数据"}), 400
+    
+    # 字段映射
+    field_map = {
+        '姓名': 'name', '名字': 'name', 'name': 'name',
+        '电话': 'phone', '手机': 'phone', 'phone': 'phone', 'tel': 'phone',
+        '邮箱': 'email', '邮件': 'email', 'email': 'email',
+        '公司': 'company', '企业': 'company', '单位': 'company', 'company': 'company',
+        '备注': 'notes', '备注': 'notes', 'notes': 'notes',
+        '查重内容': 'content', '内容': 'content', 'content': 'content',
+    }
+    
+    # 解析前20条预览
+    preview = []
+    db = get_db()
+    existing_names = set(r['name'] for r in db.execute("SELECT name FROM customers WHERE name IS NOT NULL").fetchall())
+    existing_phones = set(r['phone'] for r in db.execute("SELECT phone FROM customers WHERE phone IS NOT NULL AND phone != ''").fetchall())
+    
+    duplicate_count = 0
+    for idx, record in enumerate(records):
+        mapped = {}
+        for k, v in record.items():
+            key = k.strip()
+            if key in field_map:
+                mapped[field_map[key]] = v.strip() if v else ''
+        if 'name' not in mapped:
+            for k in record:
+                if any(term in k for term in ['姓名', '名字', '名称', 'name']):
+                    mapped['name'] = record[k].strip() if record[k] else ''
+                    break
+        
+        name = mapped.get('name', '')
+        phone = clean_phone(mapped.get('phone', ''))
+        
+        is_dup = (name and name in existing_names) or (phone and phone in existing_phones)
+        if is_dup:
+            duplicate_count += 1
+        
+        if idx < 20:
+            preview.append({
+                'index': idx + 1,
+                'name': name,
+                'phone': phone,
+                'email': mapped.get('email', ''),
+                'company': mapped.get('company', ''),
+                'notes': mapped.get('notes', ''),
+                'is_duplicate': is_dup
+            })
+    
+    return jsonify({
+        'ok': True,
+        'total': len(records),
+        'preview': preview,
+        'duplicate_count': duplicate_count,
+        'filename': file.filename
+    })
+
+
+# ========= 功能4: 归属地区域统计 =========
+@app.route('/api/analytics/region-map', methods=['GET'])
+@login_required
+def api_region_map():
+    """统计各归属地的客户数量"""
+    db = get_db()
+    rows = db.execute("""
+        SELECT phone_region, COUNT(*) as count
+        FROM customers
+        WHERE phone_region IS NOT NULL AND phone_region != ''
+        GROUP BY phone_region
+        ORDER BY count DESC
+    """).fetchall()
+    
+    regions = {r['phone_region']: r['count'] for r in rows}
+    total_with_region = sum(regions.values())
+    total_without_region = db.execute("SELECT COUNT(*) FROM customers WHERE phone_region IS NULL OR phone_region = ''").fetchone()[0]
+    
+    return jsonify({
+        'regions': regions,
+        'total_with_region': total_with_region,
+        'total_without_region': total_without_region,
+        'total_customers': total_with_region + total_without_region
+    })
+
+
+# ========= 功能5: 高级搜索（增强现有 /api/customers GET 路由）=========
+# 已在原路由中添加 region, date_from, date_to, company 参数支持
+
+
+# ========= 功能6: 查重统计 =========
+@app.route('/api/analytics/check-stats', methods=['GET'])
+@login_required
+def api_check_stats():
+    """返回查重统计数据（从 check_logs 表取真实数据）"""
+    db = get_db()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # 今日查重次数
+    today_checks = db.execute(
+        "SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 总查重次数（用 check_history 表，因为 check_logs 可能不完整）
+    total_checks = db.execute("SELECT COUNT(*) FROM check_logs").fetchone()[0]
+    
+    # 今日重复数
+    today_dup = db.execute(
+        "SELECT COALESCE(SUM(duplicate_count), 0) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 总重复数
+    total_dup = db.execute(
+        "SELECT COALESCE(SUM(duplicate_count), 0) FROM check_logs"
+    ).fetchone()[0]
+    
+    # 平均重复率
+    avg_duplicate_rate = round((total_dup / total_checks * 100) if total_checks > 0 else 0, 2)
+    
+    # 今日查重记录次数（查询次数）
+    today_check_count = db.execute(
+        "SELECT COUNT(*) FROM check_logs WHERE check_date = ?",
+        (today,)
+    ).fetchone()[0]
+    
+    # 近7天趋势
+    weekly_trend = []
+    for i in range(6, -1, -1):
+        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        count = db.execute(
+            "SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?",
+            (day,)
+        ).fetchone()[0]
+        weekly_trend.append({"date": day, "count": count})
+    
+    return jsonify({
+        'today_checks': today_checks,
+        'total_checks': total_checks,
+        'today_duplicate': today_dup,
+        'total_duplicate': total_dup,
+        'avg_duplicate_rate': avg_duplicate_rate,
+        'today_check_count': today_check_count,
+        'weekly_trend': weekly_trend
+    })
+
 
 # ========= 启动 =========
 if __name__ == '__main__':
