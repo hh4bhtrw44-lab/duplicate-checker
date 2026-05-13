@@ -419,173 +419,49 @@ def detect_phone_region(phone):
 @app.route('/api/customers/fix-data', methods=['POST'])
 @login_required
 def api_fix_customer_data():
-    """自动修复数据：将电话栏中的姓名+电话混合数据拆分"""
+    """修复数据：把姓名栏中的数字提取到电话栏"""
     db = get_db()
-    rows = db.execute('SELECT id, name, phone FROM customers').fetchall()
-    fixed = 0
+    offset = 0
+    batch_size = 1000
+    total_fixed = 0
     import re as re_mod
-    for r in rows:
-        cid = r['id']
-        name = (r['name'] or '').strip()
-        phone = (r['phone'] or '').strip()
 
-        # Case 1: phone field mixed with name
-        if phone:
-            parts = re_mod.split(r'[\s\t,，|;；]+', phone)
-            phone_parts = []
-            name_parts = []
-            for p in parts:
-                p = p.strip()
-                if not p:
-                    continue
-                if re_mod.match(r'^[\+\d][\d\s\-\(\)]{4,}$', p):
-                    phone_parts.append(p)
-                else:
-                    name_parts.append(p)
+    while True:
+        rows = db.execute('SELECT id, name, phone FROM customers ORDER BY id LIMIT ? OFFSET ?', (batch_size, offset)).fetchall()
+        if not rows:
+            break
+        fixed = 0
+        for r in rows:
+            cid = r['id']
+            name = (r['name'] or '').strip()
+            phone = (r['phone'] or '').strip()
 
-            if phone_parts and name_parts:
-                new_phone = clean_phone(' '.join(phone_parts))
-                new_name = ' '.join(name_parts)
-                if name:
-                    new_name = name + ' ' + new_name
-                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
-                fixed += 1
-            elif not phone_parts and name_parts and not name:
-                db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (name_parts[0], '', cid))
-                fixed += 1
-
-        # Case 2: name field mixed with phone numbers - extract digits to phone
-        if name:
-            parts = re_mod.split(r'[\s\t,，|;；]+', name)
-            phone_parts = []
-            name_parts = []
-            for p in parts:
-                p = p.strip()
-                if not p:
-                    continue
-                digit_only = re_mod.sub(r'[\+\-\s\(\)]', '', p)
-                if digit_only.isdigit() and len(digit_only) >= 5:
-                    phone_parts.append(digit_only)
-                else:
-                    name_parts.append(p)
-
-            if phone_parts:
-                new_name = ' '.join(name_parts) if name_parts else ''
-                existing_phone = db.execute('SELECT phone FROM customers WHERE id=?', (cid,)).fetchone()['phone'] or ''
-                new_phone = clean_phone((existing_phone + ' ' + ' '.join(phone_parts)).strip())
-                if new_name != name:
-                    db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name.strip(), new_phone, cid))
+            # 姓名栏中提取数字到电话
+            if name:
+                phone_digits = re_mod.findall(r'[+]?\d{5,}', name)
+                if phone_digits:
+                    new_phone_raw = phone + ''.join(phone_digits) if phone else ''.join(phone_digits)
+                    new_name = re_mod.sub(r'[+]?\d{5,}', '', name).strip()
+                    new_phone = clean_phone(new_phone_raw)
+                    db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name, new_phone, cid))
                     fixed += 1
-@app.route('/api/customers/quick-add', methods=['POST'])
-@login_required
-def api_quick_add():
-    """快速添加：自动识别电话和姓名，返回去重结果"""
-    data = request.get_json()
-    lines = data.get('lines', '')
-    if not lines:
-        return jsonify({'error': '请输入客户信息'}), 400
 
-    lines = [l.strip() for l in lines.split('\n') if l.strip()]
-    db = get_db()
-    imported = 0
-    all_duplicates = []
+            # 电话栏中有姓名（非数字内容）
+            if phone:
+                phone_digits = re_mod.findall(r'[+]?\d{5,}', phone)
+                name_text = re_mod.sub(r'[+]?\d{5,}', '', phone).strip()
+                if name_text:
+                    new_name = (name + ' ' + name_text).strip()
+                    new_phone = clean_phone(''.join(phone_digits))
+                    db.execute('UPDATE customers SET name=?, phone=? WHERE id=?', (new_name, new_phone, cid))
+                    fixed += 1
 
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
+        if fixed > 0:
+            db.commit()
+            total_fixed += fixed
+        offset += batch_size
 
-        all_segments = re.split(r'[\s\t,，|;；]+', line)
-        phone_candidates = []
-        name_candidates = []
-        prefix_buf = ''  # 存+86等短前缀
-        digit_segments = []  # 收集短的纯数字段
-
-        for seg in all_segments:
-            seg = seg.strip()
-            if not seg:
-                continue
-            # 判断是否是国际区号前缀（+86、+852、+855等）
-            if re.match(r'^\+', seg) and len(seg) <= 5:
-                prefix_buf = re.sub(r'[\+\s]', '', seg)
-                continue
-            digit_only = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
-            if digit_only.isdigit() and len(digit_only) >= 5:
-                phone_candidates.append(prefix_buf + digit_only)
-                prefix_buf = ''
-            elif digit_only.isdigit() and len(digit_only) > 0:
-                # 短数字段，先收集，看能否拼成完整号码
-                digit_segments.append(digit_only)
-            else:
-                seg_clean = re.sub(r'[\+\-\s\(\)]', '', seg).strip()
-                if seg_clean:
-                    name_candidates.append(seg_clean)
-
-        # 合并短数字段，够5位就当电话
-        if digit_segments:
-            combined_digits = ''.join(digit_segments)
-            if len(combined_digits) >= 5:
-                phone_candidates.append(prefix_buf + combined_digits)
-                prefix_buf = ''
-            else:
-                name_candidates.append(' '.join(digit_segments))
-
-        # 如果前缀还留着，说明没有电话跟它，当姓名处理
-        if prefix_buf and not phone_candidates:
-            name_candidates.insert(0, '+' + prefix_buf)
-
-        # 如果还没分出来，从姓名中提取数字
-        if not phone_candidates:
-            combined = ''.join(name_candidates)
-            found_nums = re.findall(r'\d{5,}', combined)
-            if found_nums:
-                phone_candidates = found_nums
-                for n in found_nums:
-                    combined = combined.replace(n, '', 1)
-                name_candidates = [combined.strip()] if combined.strip() else []
-
-        name = ' '.join(name_candidates) if name_candidates else ''
-        phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
-
-        if not name and not phone:
-            continue
-
-        # 去重检查
-        dup_entry = {'line': line, 'name': name, 'phone': phone, 'duplicates': []}
-        if name:
-            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE name=?', (name,)).fetchall()
-            for s in same:
-                dup_entry['duplicates'].append({
-                    'id': s['id'], 'name': s['name'], 'phone': s['phone'],
-                    'company': s['company'], 'field': '姓名', 'created_at': s['created_at']
-                })
-        if phone:
-            same = db.execute('SELECT id, name, phone, company, created_at FROM customers WHERE phone=? AND phone!=""', (phone,)).fetchall()
-            for s in same:
-                if not any(d['id'] == s['id'] for d in dup_entry['duplicates']):
-                    dup_entry['duplicates'].append({
-                        'id': s['id'], 'name': s['name'], 'phone': s['phone'],
-                        'company': s['company'], 'field': '电话', 'created_at': s['created_at']
-                    })
-
-        if dup_entry['duplicates']:
-            all_duplicates.append(dup_entry)
-        else:
-            try:
-                db.execute('INSERT INTO customers (name, phone, company, phone_region) VALUES (?, ?, ?, ?)',
-                           (name, phone, '', ''))
-                imported += 1
-            except:
-                pass
-
-    db.commit()
-    return jsonify({
-        'ok': True, 'imported': imported, 'total': len(lines),
-        'duplicates': all_duplicates
-    })
-
-@app.route('/api/customers/detect-regions', methods=['POST'])
-@login_required
+    return jsonify({'ok': True, 'fixed': total_fixed, 'message': '已修复 ' + str(total_fixed) + ' 条数据'})
 def api_detect_regions():
     """批量检测电话归属地"""
     db = get_db()
