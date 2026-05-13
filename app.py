@@ -465,12 +465,13 @@ def api_quick_add():
         phone_candidates = []
         name_candidates = []
         prefix_buf = ''  # 存+86等短前缀
+        digit_segments = []  # 收集短的纯数字段
 
         for seg in all_segments:
             seg = seg.strip()
             if not seg:
                 continue
-            # 判断是否是国际区号前缀（+86、+852等）
+            # 判断是否是国际区号前缀（+86、+852、+855等）
             if re.match(r'^\+', seg) and len(seg) <= 5:
                 prefix_buf = re.sub(r'[\+\s]', '', seg)
                 continue
@@ -478,16 +479,28 @@ def api_quick_add():
             if digit_only.isdigit() and len(digit_only) >= 5:
                 phone_candidates.append(prefix_buf + digit_only)
                 prefix_buf = ''
-            elif seg.isdigit() and len(seg) >= 5:
-                phone_candidates.append(prefix_buf + seg)
+            elif digit_only.isdigit() and len(digit_only) > 0:
+                # 短数字段，先收集，看能否拼成完整号码
+                digit_segments.append(digit_only)
+            else:
+                seg_clean = re.sub(r'[\+\-\s\(\)]', '', seg).strip()
+                if seg_clean:
+                    name_candidates.append(seg_clean)
+
+        # 合并短数字段，够5位就当电话
+        if digit_segments:
+            combined_digits = ''.join(digit_segments)
+            if len(combined_digits) >= 5:
+                phone_candidates.append(prefix_buf + combined_digits)
                 prefix_buf = ''
             else:
-                name_candidates.append(seg)
+                name_candidates.append(' '.join(digit_segments))
 
         # 如果前缀还留着，说明没有电话跟它，当姓名处理
         if prefix_buf and not phone_candidates:
             name_candidates.insert(0, '+' + prefix_buf)
 
+        # 如果还没分出来，从姓名中提取数字
         if not phone_candidates:
             combined = ''.join(name_candidates)
             found_nums = re.findall(r'\d{5,}', combined)
