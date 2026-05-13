@@ -1752,26 +1752,53 @@ def api_quick_add():
     all_duplicates = []
 
     for line in lines:
-        line = line.strip()
-        if not line:
+        raw = line.strip()
+        if not raw:
             continue
 
-        # Simple parsing: first non-digit part = name, rest = phone
-        segs = line.split()
+        # ===== 智能解析：把整行拆成"姓名"和"电话" =====
+        segs = raw.split()
         name_parts = []
-        phone_parts = []
+        digit_parts = []
+
         for seg in segs:
-            cleaned = re.sub(r'[\+\-\s\(\)\.]', '', seg)
-            if cleaned.isdigit() and len(cleaned) >= 5:
-                phone_parts.append(cleaned)
+            # 去掉符号后判断是否主要是数字
+            cleaned = re.sub(r'[\+\-\s\(\)\.\/]', '', seg)
+            has_plus = '+' in seg
+
+            if cleaned.isdigit():
+                # 这整段就是数字 → 归入电话
+                digit_parts.append(seg)
+            elif has_plus and any(ch.isdigit() for ch in cleaned):
+                # 包含+号和数字（如 +44, +852）→ 电话前缀
+                digit_parts.append(seg)
+            elif any(ch.isdigit() for ch in cleaned) and len(cleaned) >= 3:
+                # 混合段但数字≥3位 → 电话（如 13800138000abc → 提取数字）
+                digits_only = re.sub(r'\D', '', seg)
+                digit_parts.append(digits_only)
             else:
+                # 纯文字 → 姓名
                 name_parts.append(seg)
 
+        # 姓名：所有非数字段的组合
         name = ' '.join(name_parts).strip()
-        phone = ''.join(phone_parts) if phone_parts else ''
-        phone = clean_phone(phone) if phone else ''
 
+        # 电话：去掉符号合并所有数字段，然后清洗
+        raw_phone = ' '.join(digit_parts)
+        phone = clean_phone(raw_phone) if raw_phone else ''
+
+        # 特殊情况：整行只有数字无姓名 → 姓名留空
         if not name and not phone:
+            # 极端情况：整行是纯数字但没有被分到digit_parts
+            all_digits = re.sub(r'\D', '', raw)
+            if len(all_digits) >= 5:
+                phone = clean_phone(raw)
+                name = ''
+            else:
+                name = raw
+                phone = ''
+
+        if not phone and not name:
             continue
 
         # Duplicate check
@@ -1779,11 +1806,11 @@ def api_quick_add():
         if name:
             same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ?", (name,)).fetchall()
             for r in same_name:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "姓名"})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u59d3\u540d"})
         if phone:
             same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != ''", (phone,)).fetchall()
             for r in same_phone:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话"})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd"})
 
         if duplicates:
             all_duplicates.extend(duplicates)
@@ -1806,15 +1833,3 @@ def api_quick_add():
         'ok': True, 'imported': imported, 'total': len(lines),
         'duplicates': all_duplicates
     })
-
-
-
-if __name__ == '__main__':
-    print("=" * 60)
-    print("  🚀 客户查重管理系统 (完整版)")
-    print("=" * 60)
-    print("  ✅ 生产模式启动: bash start.sh")
-    print("  🌐 http://localhost:5000")
-    print("  👤 admin / admin123")
-    print("=" * 60)
-    app.run(host='0.0.0.0', port=5000, debug=True)
