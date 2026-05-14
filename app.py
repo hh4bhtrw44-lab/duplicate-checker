@@ -677,9 +677,6 @@ def api_update_customer(id):
 @app.route('/api/customers/<int:id>', methods=['DELETE'])
 @login_required
 def api_delete_customer(id):
-    pwd = request.args.get('pwd', '') or (request.get_json(silent=True) or {}).get('pwd', '')
-    if pwd != DATA_PASSWORD:
-        return jsonify({"error": "密码错误，无法删除"}), 403
     db = get_db()
     db.execute("DELETE FROM customers WHERE id=?", (id,))
     db.execute("DELETE FROM check_history WHERE customer1_id=? OR customer2_id=?", (id, id))
@@ -691,9 +688,6 @@ def api_delete_customer(id):
 def api_batch_delete():
     data = request.get_json()
     ids = data.get('ids', [])
-    pwd = data.get('pwd', '')
-    if pwd != DATA_PASSWORD:
-        return jsonify({"error": "密码错误，无法批量删除"}), 403
     if not ids:
         return jsonify({"error": "请选择要删除的客户"}), 400
     db = get_db()
@@ -717,9 +711,6 @@ def api_verify_data_password():
 @app.route('/api/export/excel', methods=['GET'])
 @login_required
 def api_export_excel():
-    pwd = request.args.get('pwd', '')
-    if pwd != DATA_PASSWORD:
-        return jsonify({"error": "密码错误，无法导出数据"}), 403
     try:
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -814,10 +805,6 @@ def api_export_excel():
 @app.route('/api/customers/import', methods=['POST'])
 @login_required
 def api_import_customers():
-    pwd = request.form.get('pwd', '')
-    if pwd != DATA_PASSWORD:
-        return jsonify({"error": "密码错误，无法导入数据"}), 403
-
     if 'file' not in request.files:
         return jsonify({"error": "请上传文件"}), 400
 
