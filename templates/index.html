@@ -963,7 +963,7 @@
                             });
                         } else {
                             data.duplicates.forEach(function(dup) {
-                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + (dup.source_line||dup.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
+                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + (dup.source_line||dup.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at||'').substring(0,10) + '</td></tr>';
                             });
                         }
                         html += '</tbody></table></div></div></div>';
