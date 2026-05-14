@@ -1,4 +1,3 @@
-# remove all password checks
 #!/usr/bin/env python3
 """客户查重管理系统 - Flask + SQLite (完整功能版)"""
 import re
@@ -50,9 +49,6 @@ REGION_COORDS = {
     '北京市': (39.9042, 116.4074), '上海市': (31.2304, 121.4737), '天津市': (39.3434, 117.3616),
     '重庆市': (29.4316, 106.9123), '香港': (22.3193, 114.1694), '澳门': (22.1987, 113.5439),
     '台湾': (23.6978, 120.9605),
-    '土库曼斯坦': (38.9697, 59.5563),
-    '塔吉克斯坦': (38.8610, 71.2761),
-    '吉尔吉克斯坦': (41.2044, 74.7661),
 }
 
 def get_coords_for_region(region):
@@ -591,12 +587,12 @@ def api_add_customer():
     # ====== 去重检测 ======
     duplicates = []
     if name:
-        same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ? AND id != ?",
+        same_name = db.execute("SELECT id, name, phone, company FROM customers WHERE name = ? AND id != ?",
                                (name, request.json.get('id', 0) or 0)).fetchall()
         for r in same_name:
             duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "姓名", "created_at": r["created_at"]})
     if phone:
-        same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != '' AND id != ?",
+        same_phone = db.execute("SELECT id, name, phone, company FROM customers WHERE phone = ? AND phone != '' AND id != ?",
                                 (phone, request.json.get('id', 0) or 0)).fetchall()
         for r in same_phone:
             duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话", "created_at": r["created_at"]})
@@ -678,6 +674,9 @@ def api_update_customer(id):
 @app.route('/api/customers/<int:id>', methods=['DELETE'])
 @login_required
 def api_delete_customer(id):
+    pwd = request.args.get('pwd', '') or (request.get_json(silent=True) or {}).get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法删除"}), 403
     db = get_db()
     db.execute("DELETE FROM customers WHERE id=?", (id,))
     db.execute("DELETE FROM check_history WHERE customer1_id=? OR customer2_id=?", (id, id))
@@ -689,6 +688,9 @@ def api_delete_customer(id):
 def api_batch_delete():
     data = request.get_json()
     ids = data.get('ids', [])
+    pwd = data.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法批量删除"}), 403
     if not ids:
         return jsonify({"error": "请选择要删除的客户"}), 400
     db = get_db()
@@ -712,6 +714,9 @@ def api_verify_data_password():
 @app.route('/api/export/excel', methods=['GET'])
 @login_required
 def api_export_excel():
+    pwd = request.args.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法导出数据"}), 403
     try:
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -806,6 +811,10 @@ def api_export_excel():
 @app.route('/api/customers/import', methods=['POST'])
 @login_required
 def api_import_customers():
+    pwd = request.form.get('pwd', '')
+    if pwd != DATA_PASSWORD:
+        return jsonify({"error": "密码错误，无法导入数据"}), 403
+
     if 'file' not in request.files:
         return jsonify({"error": "请上传文件"}), 400
 
@@ -1821,11 +1830,11 @@ def api_quick_add():
         if name:
             same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ?", (name,)).fetchall()
             for r in same_name:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u59d3\u540d", "created_at": str(dict(r).get("created_at", ""))})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u59d3\u540d", "created_at": ""})
         if phone:
             same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != ''", (phone,)).fetchall()
             for r in same_phone:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd", "created_at": str(dict(r).get("created_at", ""))})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd", "created_at": ""})
 
         if duplicates:
             for dup in duplicates:
@@ -1850,5 +1859,3 @@ def api_quick_add():
         'ok': True, 'imported': imported, 'total': len(lines),
         'duplicates': all_duplicates
     })
-
-# redeploy: remove all password checks
