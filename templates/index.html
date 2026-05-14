@@ -1175,7 +1175,7 @@
             const ids = pendingAction ? pendingAction.params : [];
             if (ids.length === 0) return;
             try {
-                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const res = await fetch('/api/customers/batch-delete?pwd=' + encodeURIComponent(pwd || window._dataPassword || ''), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
                 const result = await res.json();
                 if (result.ok) {
                     showToast(`成功删除 ${result.deleted} 个客户`);
@@ -1464,7 +1464,8 @@
             formData.append('file', file);
 
             try {
-                const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
+                formData.append('pwd', pwd || window._dataPassword || '');
+            const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.ok) {
                     let html = `<p>✅ 导入完成：成功 ${data.imported}/${data.total} 条</p>`;
@@ -1492,7 +1493,7 @@
             showDataPasswordModal('exportExcel', null);
         }
         async function exportExcelConfirm(pwd) {
-            var pwd = pwd || window._dataPassword || document.getElementById('dataPasswordInput').value;
+            pwd = pwd || window._dataPassword || document.getElementById('dataPasswordInput').value;
             try {
                 const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
                 if (!res.ok) { showToast('导出失败', 'error'); return; }
