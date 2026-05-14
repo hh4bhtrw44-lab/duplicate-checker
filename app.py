@@ -993,7 +993,7 @@ def api_phone_lookup():
 
         # Try to detect - try various countries
         for test in [clean_phone_with_plus, clean_phone]:
-            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN"]:
+            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN", "TM", "KG", "TJ", "UZ", "KZ", "TR", "SA", "AE", "IR", "IQ", "PK", "BD", "MM", "LA", "KH"]:
                 try:
                     p = phonenumbers.parse(test, cc)
                     if phonenumbers.is_valid_number(p):
@@ -1039,6 +1039,10 @@ def api_phone_lookup():
         carrier_name = carrier.name_for_number(parsed, "zh")
         country_code = str(parsed.country_code)
 
+        # 修正名称
+        name_fix = {'吉尔吉克斯坦': '吉尔吉斯斯坦'}
+        if country in name_fix: country = name_fix[country]
+        if region in name_fix: region = name_fix[region]
         return jsonify({
             "phone": phone, "valid": True,
             "country": country, "region": region or country,
