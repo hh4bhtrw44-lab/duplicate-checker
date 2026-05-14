@@ -1175,7 +1175,7 @@
             const ids = pendingAction ? pendingAction.params : [];
             if (ids.length === 0) return;
             try {
-                const res = await fetch('/api/customers/batch-delete?pwd=' + encodeURIComponent(pwd || window._dataPassword || ''), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids: ids, pwd: pwd || window._dataPassword || ''}) });
                 const result = await res.json();
                 if (result.ok) {
                     showToast(`成功删除 ${result.deleted} 个客户`);
