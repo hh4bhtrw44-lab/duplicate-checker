@@ -268,7 +268,11 @@ def login():
             session['role'] = user['role']
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "用户名或密码错误"}), 401
-    return render_template('login.html')
+    resp = make_response(render_template('login.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @app.route('/logout')
 def logout():
