@@ -1837,6 +1837,8 @@ def api_quick_add():
                 duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd"})
 
         if duplicates:
+            for dup in duplicates:
+                dup['source_line'] = raw
             all_duplicates.extend(duplicates)
         else:
             try:
