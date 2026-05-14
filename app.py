@@ -516,46 +516,58 @@ def api_detect_regions():
     db = get_db()
     rows = db.execute("SELECT id, phone FROM customers WHERE phone IS NOT NULL AND phone != ''").fetchall()
     updated = 0
+    
+    # 手动国家代码映射（当phonenumbers无法解析时兜底）
+    COUNTRY_CODE_MAP = {
+        '992': '塔吉克斯坦',
+        '993': '土库曼斯坦',
+        '996': '吉尔吉斯斯坦',
+        '998': '乌兹别克斯坦',
+        '7': '哈萨克斯坦',
+        '1': '美国',
+        '44': '英国',
+        '81': '日本',
+        '82': '韩国',
+        '86': '中国',
+        '852': '中国香港',
+        '853': '中国澳门',
+        '886': '中国台湾',
+        '90': '土耳其',
+        '91': '印度',
+        '60': '马来西亚',
+        '63': '菲律宾',
+        '65': '新加坡',
+        '66': '泰国',
+        '84': '越南',
+        '62': '印度尼西亚',
+    }
+    # 前缀按长度降序排序（先匹配长前缀避免误匹配）
+    PREFIXES = sorted(COUNTRY_CODE_MAP.keys(), key=lambda x: -len(x))
+    
     for r in rows:
         phone = r['phone']
         region = ''
-        clean = phone.replace('+', '')
+        clean = phone.strip().replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+        
+        # 方法1: 用phonenumbers解析
         try:
-            try:
-                parsed = phonenumbers.parse('+' + clean, None)
-                region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
-            except:
-                pass
-            if not region:
-                if len(clean) == 11 and clean.startswith('1'):
-                    parsed = phonenumbers.parse(clean, 'CN')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                elif len(clean) == 8:
-                    parsed = phonenumbers.parse(clean, 'HK')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                elif len(clean) == 9 and clean.startswith('9'):
-                    parsed = phonenumbers.parse(clean, 'TW')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                if len(clean) == 10:
-                    parsed = phonenumbers.parse(clean, 'US')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                if not region and len(clean) == 10:
-                    parsed = phonenumbers.parse(clean, 'TR')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                if not region and len(clean) == 10:
-                    parsed = phonenumbers.parse(clean, 'KZ')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
-                else:
-                    parsed = phonenumbers.parse(clean, 'CN')
-                    region = geocoder.description_for_number(parsed, 'zh') or ''
+            parsed = phonenumbers.parse('+' + clean, None)
+            region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
             pass
+        
+        # 方法2: 手动国家代码匹配
+        if not region:
+            for prefix in PREFIXES:
+                if clean.startswith(prefix):
+                    region = COUNTRY_CODE_MAP[prefix]
+                    break
+        
         if region:
             db.execute('UPDATE customers SET phone_region=? WHERE id=?', (region, r['id']))
             updated += 1
     db.commit()
     return jsonify({'ok': True, 'updated': updated, 'message': f'已检测 {updated} 个号码的归属地'})
-
 @app.route('/api/customers', methods=['POST'])
 @login_required
 def api_add_customer():
