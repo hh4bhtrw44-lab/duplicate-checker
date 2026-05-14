@@ -1849,3 +1849,5 @@ def api_quick_add():
         'ok': True, 'imported': imported, 'total': len(lines),
         'duplicates': all_duplicates
     })
+
+# redeploy: remove all password checks
