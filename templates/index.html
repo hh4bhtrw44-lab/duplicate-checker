@@ -589,7 +589,19 @@
         </div>
     </div>
 
-    
+    <!-- Modal: Data Password Check -->
+    <div class="modal-overlay" id="dataPasswordModal" style="display:none;">
+        <div class="modal" style="max-width:380px;">
+            <h2 style="margin-bottom:10px;">🔒 请输入管理员密码</h2>
+            <p style="color:#888; font-size:13px; margin-bottom:12px;">删除、导出、导入数据需要密码验证</p>
+            <input type="password" id="dataPasswordInput" placeholder="请输入数据操作密码" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:16px; box-sizing:border-box;">
+            <p id="dataPasswordError" style="color:#e74c3c; display:none; font-size:13px; margin:8px 0;">❌ 密码错误</p>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="confirmDataPassword()">确认</button>
+                <button class="btn btn-outline" onclick="closeDataPasswordModal()">取消</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -1587,18 +1599,5 @@
         }
 
     </script>
-<!-- Modal: Data Password Check -->
-    <div class="modal-overlay" id="dataPasswordModal" style="display:none;">
-        <div class="modal" style="max-width:380px;">
-            <h2 style="margin-bottom:10px;">🔒 请输入管理员密码</h2>
-            <p style="color:#888; font-size:13px; margin-bottom:12px;">删除、导出、导入数据需要密码验证</p>
-            <input type="password" id="dataPasswordInput" placeholder="请输入数据操作密码" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:16px; box-sizing:border-box;">
-            <p id="dataPasswordError" style="color:#e74c3c; display:none; font-size:13px; margin:8px 0;">❌ 密码错误</p>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="confirmDataPassword()">确认</button>
-                <button class="btn btn-outline" onclick="closeDataPasswordModal()">取消</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
