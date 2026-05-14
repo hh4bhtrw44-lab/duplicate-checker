@@ -954,11 +954,18 @@
                         html += '<div style="margin-top:10px; padding:12px; background:#fff8e1; border-radius:6px; border-left:4px solid #ff9800;">';
                         html += '<p style="color:#e65100; font-weight:bold; margin-bottom:8px;">⚠️ 以下 ' + data.duplicates.length + ' 条跳过（检测到重复）：</p>';
                         html += '<div class="table-container" style="max-height:200px; overflow-y:auto;"><table style="font-size:12px;"><thead><tr><th>原始内容</th><th>匹配客户</th><th>电话</th><th>匹配字段</th><th>入库时间</th></tr></thead><tbody>';
-                        data.duplicates.forEach(function(d) {
-                            d.duplicates.forEach(function(dup) {
-                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + d.line.substring(0,20) + '</td><td>' + dup.name + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + dup.field + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
+                        // 兼容：扁平格式[{name,phone,field}] 或 分组格式[{line, duplicates: [...]}]
+                        if (data.duplicates[0] && data.duplicates[0].duplicates) {
+                            data.duplicates.forEach(function(d) {
+                                d.duplicates.forEach(function(dup) {
+                                    html += '<tr><td style="max-width:100px; overflow:hidden;">' + (d.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
+                                });
                             });
-                        });
+                        } else {
+                            data.duplicates.forEach(function(dup) {
+                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + (dup.source_line||dup.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
+                            });
+                        }
                         html += '</tbody></table></div></div></div>';
                         el.innerHTML = html;
                     } else {
