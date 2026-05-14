@@ -300,6 +300,10 @@
             .form-row { grid-template-columns: 1fr; }
             .app-header h1 { font-size: 17px; }
         }
+    
+        /* 确保密码弹窗始终在最上层 */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10001; display: none; align-items: center; justify-content: center; }
+        .modal-overlay .modal { background: #fff; border-radius: 12px; padding: 25px; width: 90%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 10002; position: relative; }
     </style>
 </head>
 <body>
@@ -589,190 +593,7 @@
         </div>
     </div>
 
-    <!-- Modal: Data Password Check -->
-    <div class="modal-overlay" id="dataPasswordModal" style="display:none;">
-        <div class="modal" style="max-width:380px;">
-            <h2 style="margin-bottom:10px;">🔒 请输入管理员密码</h2>
-            <p style="color:#888; font-size:13px; margin-bottom:12px;">删除、导出、导入数据需要密码验证</p>
-            <input type="password" id="dataPasswordInput" placeholder="请输入数据操作密码" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:16px; box-sizing:border-box;">
-            <p id="dataPasswordError" style="color:#e74c3c; display:none; font-size:13px; margin:8px 0;">❌ 密码错误</p>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="confirmDataPassword()">确认</button>
-                <button class="btn btn-outline" onclick="closeDataPasswordModal()">取消</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
-
-    <script>
-        // ========== Auth Check ==========
-        async function checkAuth() {
-            try {
-                const res = await fetch('/api/customers?page=1&per_page=1');
-                if (res.status === 401) window.location.href = '/login';
-            } catch { window.location.href = '/login'; }
-        }
-        checkAuth();
-
-        document.getElementById('logoutBtn').onclick = async () => {
-            await fetch('/logout');
-            window.location.href = '/login';
-        };
-
-        // ========== Tab Switching ==========
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-
-            if (tabId === 'tab-dashboard') loadDashboard();
-            if (tabId === 'tab-customers') loadCustomers();
-            if (tabId === 'tab-history') loadCheckStats();
-            if (tabId === 'tab-analytics') loadAnalytics();
-        }
-        document.querySelectorAll('.nav-tabs button').forEach(btn => {
-            btn.onclick = () => switchTab(btn.dataset.tab);
-        });
-
-        // ========== Toast ==========
-        function showToast(msg, type = 'success') {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast show ' + type;
-            setTimeout(() => t.classList.remove('show'), 2500);
-        }
-
-        // ========== Password Change ==========
-        function showChangePassword() {
-            document.getElementById('passwordModal').classList.add('show');
-            document.getElementById('passwordResult').style.display = 'none';
-        }
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.remove('show');
-        }
-        async function changePassword() {
-            const oldPw = document.getElementById('oldPassword').value;
-            const newPw = document.getElementById('newPassword').value;
-            const confirmPw = document.getElementById('confirmPassword').value;
-            const resultEl = document.getElementById('passwordResult');
-
-            if (!oldPw || !newPw) {
-                resultEl.style.display = 'block';
-                resultEl.innerHTML = '<p style="color:#e74c3c;">请填写完整</p>';
-                return;
-            }
-            if (newPw.length < 6) {
-                resultEl.style.display = 'block';
-                resultEl.innerHTML = '<p style="color:#e74c3c;">新密码长度不能少于6位</p>';
-                return;
-            }
-            if (newPw !== confirmPw) {
-                resultEl.style.display = 'block';
-                resultEl.innerHTML = '<p style="color:#e74c3c;">两次密码输入不一致</p>';
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/change-password', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({old_password: oldPw, new_password: newPw})
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    resultEl.innerHTML = '<p style="color:#27ae60;">✅ 密码修改成功！</p>';
-                    resultEl.style.display = 'block';
-                    setTimeout(closePasswordModal, 1500);
-                    document.getElementById('oldPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                } else {
-                    resultEl.innerHTML = `<p style="color:#e74c3c;">❌ ${data.error}</p>`;
-                    resultEl.style.display = 'block';
-                }
-            } catch {
-                resultEl.innerHTML = '<p style="color:#e74c3c;">网络错误</p>';
-                resultEl.style.display = 'block';
-            }
-        }
-
-        // ========== Data Password Protection ==========
-        let pendingAction = null;
-        function showDataPasswordModal(action, params) {
-            pendingAction = {name: action, params: params};
-            document.getElementById('dataPasswordInput').value = '';
-            document.getElementById('dataPasswordError').style.display = 'none';
-            document.getElementById('dataPasswordModal').style.display = 'flex';
-        }
-        function closeDataPasswordModal() {
-            document.getElementById('dataPasswordModal').style.display = 'none';
-            pendingAction = null;
-        }
-        async function confirmDataPassword() {
-            const password = document.getElementById('dataPasswordInput').value;
-            if (!password) { document.getElementById('dataPasswordError').style.display = 'block'; return; }
-            try {
-                const res = await fetch('/api/verify-data-password', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({pwd: password})
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    document.getElementById('dataPasswordModal').style.display = 'none';
-                    // 执行对应操作
-                    const action = pendingAction;
-                    pendingAction = null;
-                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params, password);
-                    else if (action.name === 'batchDelete') batchDeleteConfirm(password);
-                    else if (action.name === 'exportExcel') exportExcelConfirm(password);
-                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params, password);
-                } else {
-                    document.getElementById('dataPasswordError').style.display = 'block';
-                }
-            } catch {
-                document.getElementById('dataPasswordError').textContent = '网络错误';
-                document.getElementById('dataPasswordError').style.display = 'block';
-            }
-        }
-
-        // ========== Dashboard ==========
-        async function loadDashboard() {
-            try {
-                const res = await fetch('/api/analytics/overview');
-                const data = await res.json();
-                document.getElementById('totalCustomers').textContent = data.total_customers;
-                document.getElementById('todayNew').textContent = data.today_new;
-                document.getElementById('weekNew').textContent = data.week_new;
-                document.getElementById('monthNew').textContent = data.month_new;
-                document.getElementById('todayChecks').textContent = data.today_checks || '-';
-                document.getElementById('totalChecks').textContent = data.total_checks || '-';
-                document.getElementById('highDuplicate').textContent = data.high_duplicate || '-';
-                try {
-                    const cr = await fetch('/api/analytics/check-stats');
-                    const cd = await cr.json();
-                    document.getElementById('todayChecks').textContent = cd.today_checks || 0;
-                    document.getElementById('totalChecks').textContent = cd.total_checks || 0;
-                } catch {}
-            } catch { /* dashboard load failed */ }
-            loadRegionMap();
-        }
-        function loadRegionMap() {
-            fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
-                var c = document.getElementById('regionMapContainer');
-                var entries = Object.entries(data.regions || {}).sort(function(a,b){return b[1]-a[1];});
-                if (!entries.length) { c.innerHTML = '<p style="color:#888;">暂无归属地数据</p>'; return; }
-                var max = entries[0][1];
-                var html = '<div style="max-height:300px; overflow-y:auto;">';
-                entries.forEach(function(arr) {
-                    var region = arr[0], count = arr[1];
-                    var pct = Math.round(count/max*100);
-                    html += '<div style="margin:6px 0;"><span style="font-size:13px; min-width:80px; display:inline-block;">' + region + '</span>' +
-                        '<div style="display:inline-block; width:60%; height:20px; background:#e8e8e8; border-radius:10px; margin:0 8px; vertical-align:middle;">' +
-                        '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#e63946,#c1121f); border-radius:10px; text-align:right; line-height:20px; color:#fff; font-size:11px; padding-right:6px; box-sizing:border-box;">' + count + '</div></div>' +
+    </div>' +
                         '<span style="font-size:11px; color:#888;">' + Math.round(count/data.total_with_region*100) + '%</span></div>';
                 });
                 html += '</div>';
@@ -1599,5 +1420,190 @@
         }
 
     </script>
+<!-- Modal: Data Password Check -->
+    <div class="modal-overlay" id="dataPasswordModal" style="display:none;">
+        <div class="modal" style="max-width:380px;">
+            <h2 style="margin-bottom:10px;">🔒 请输入管理员密码</h2>
+            <p style="color:#888; font-size:13px; margin-bottom:12px;">删除、导出、导入数据需要密码验证</p>
+            <input type="password" id="dataPasswordInput" placeholder="请输入数据操作密码" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:16px; box-sizing:border-box;">
+            <p id="dataPasswordError" style="color:#e74c3c; display:none; font-size:13px; margin:8px 0;">❌ 密码错误</p>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="confirmDataPassword()">确认</button>
+                <button class="btn btn-outline" onclick="closeDataPasswordModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ========== Auth Check ==========
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/customers?page=1&per_page=1');
+                if (res.status === 401) window.location.href = '/login';
+            } catch { window.location.href = '/login'; }
+        }
+        checkAuth();
+
+        document.getElementById('logoutBtn').onclick = async () => {
+            await fetch('/logout');
+            window.location.href = '/login';
+        };
+
+        // ========== Tab Switching ==========
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+            if (tabId === 'tab-dashboard') loadDashboard();
+            if (tabId === 'tab-customers') loadCustomers();
+            if (tabId === 'tab-history') loadCheckStats();
+            if (tabId === 'tab-analytics') loadAnalytics();
+        }
+        document.querySelectorAll('.nav-tabs button').forEach(btn => {
+            btn.onclick = () => switchTab(btn.dataset.tab);
+        });
+
+        // ========== Toast ==========
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // ========== Password Change ==========
+        function showChangePassword() {
+            document.getElementById('passwordModal').classList.add('show');
+            document.getElementById('passwordResult').style.display = 'none';
+        }
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+        }
+        async function changePassword() {
+            const oldPw = document.getElementById('oldPassword').value;
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+            const resultEl = document.getElementById('passwordResult');
+
+            if (!oldPw || !newPw) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">请填写完整</p>';
+                return;
+            }
+            if (newPw.length < 6) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">新密码长度不能少于6位</p>';
+                return;
+            }
+            if (newPw !== confirmPw) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<p style="color:#e74c3c;">两次密码输入不一致</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({old_password: oldPw, new_password: newPw})
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    resultEl.innerHTML = '<p style="color:#27ae60;">✅ 密码修改成功！</p>';
+                    resultEl.style.display = 'block';
+                    setTimeout(closePasswordModal, 1500);
+                    document.getElementById('oldPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    resultEl.innerHTML = `<p style="color:#e74c3c;">❌ ${data.error}</p>`;
+                    resultEl.style.display = 'block';
+                }
+            } catch {
+                resultEl.innerHTML = '<p style="color:#e74c3c;">网络错误</p>';
+                resultEl.style.display = 'block';
+            }
+        }
+
+        // ========== Data Password Protection ==========
+        let pendingAction = null;
+        function showDataPasswordModal(action, params) {
+            pendingAction = {name: action, params: params};
+            document.getElementById('dataPasswordInput').value = '';
+            document.getElementById('dataPasswordError').style.display = 'none';
+            document.getElementById('dataPasswordModal').style.display = 'flex';
+        }
+        function closeDataPasswordModal() {
+            document.getElementById('dataPasswordModal').style.display = 'none';
+            pendingAction = null;
+        }
+        async function confirmDataPassword() {
+            const password = document.getElementById('dataPasswordInput').value;
+            if (!password) { document.getElementById('dataPasswordError').style.display = 'block'; return; }
+            try {
+                const res = await fetch('/api/verify-data-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({pwd: password})
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById('dataPasswordModal').style.display = 'none';
+                    // 执行对应操作
+                    const action = pendingAction;
+                    pendingAction = null;
+                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params, password);
+                    else if (action.name === 'batchDelete') batchDeleteConfirm(password);
+                    else if (action.name === 'exportExcel') exportExcelConfirm(password);
+                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params, password);
+                } else {
+                    document.getElementById('dataPasswordError').style.display = 'block';
+                }
+            } catch {
+                document.getElementById('dataPasswordError').textContent = '网络错误';
+                document.getElementById('dataPasswordError').style.display = 'block';
+            }
+        }
+
+        // ========== Dashboard ==========
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/analytics/overview');
+                const data = await res.json();
+                document.getElementById('totalCustomers').textContent = data.total_customers;
+                document.getElementById('todayNew').textContent = data.today_new;
+                document.getElementById('weekNew').textContent = data.week_new;
+                document.getElementById('monthNew').textContent = data.month_new;
+                document.getElementById('todayChecks').textContent = data.today_checks || '-';
+                document.getElementById('totalChecks').textContent = data.total_checks || '-';
+                document.getElementById('highDuplicate').textContent = data.high_duplicate || '-';
+                try {
+                    const cr = await fetch('/api/analytics/check-stats');
+                    const cd = await cr.json();
+                    document.getElementById('todayChecks').textContent = cd.today_checks || 0;
+                    document.getElementById('totalChecks').textContent = cd.total_checks || 0;
+                } catch {}
+            } catch { /* dashboard load failed */ }
+            loadRegionMap();
+        }
+        function loadRegionMap() {
+            fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
+                var c = document.getElementById('regionMapContainer');
+                var entries = Object.entries(data.regions || {}).sort(function(a,b){return b[1]-a[1];});
+                if (!entries.length) { c.innerHTML = '<p style="color:#888;">暂无归属地数据</p>'; return; }
+                var max = entries[0][1];
+                var html = '<div style="max-height:300px; overflow-y:auto;">';
+                entries.forEach(function(arr) {
+                    var region = arr[0], count = arr[1];
+                    var pct = Math.round(count/max*100);
+                    html += '<div style="margin:6px 0;"><span style="font-size:13px; min-width:80px; display:inline-block;">' + region + '</span>' +
+                        '<div style="display:inline-block; width:60%; height:20px; background:#e8e8e8; border-radius:10px; margin:0 8px; vertical-align:middle;">' +
+                        '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#e63946,#c1121f); border-radius:10px; text-align:right; line-height:20px; color:#fff; font-size:11px; padding-right:6px; box-sizing:border-box;">' + count + '</div>
+
 </body>
 </html>
