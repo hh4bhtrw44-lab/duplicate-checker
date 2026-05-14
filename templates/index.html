@@ -1178,7 +1178,7 @@
             if (ids.length === 0) return;
             showDataPasswordModal('batchDelete', ids);
         }
-        async async function batchDeleteConfirm(pwd) {
+        async function batchDeleteConfirm(pwd) {
             const ids = pendingAction ? pendingAction.params : [];
             if (ids.length === 0) return;
             try {
@@ -1455,7 +1455,7 @@
             if (input.files.length) showDataPasswordModal('uploadImport', input.files[0]);
         }
 
-        async async function uploadImportConfirm(file, pwd) {
+        async function uploadImportConfirm(file, pwd) {
             const resultEl = document.getElementById('importResult');
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['csv', 'xlsx', 'txt'].includes(ext)) {
@@ -1499,7 +1499,7 @@
         async function exportExcel() {
             showDataPasswordModal('exportExcel', null);
         }
-        async async function exportExcelConfirm(pwd) {
+        async function exportExcelConfirm(pwd) {
             pwd = pwd || window._dataPassword || document.getElementById('dataPasswordInput').value;
             try {
                 const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
