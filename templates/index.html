@@ -2,18 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🧧 八方来财客户查重系统</title>
+    <link rel="icon" href="/static/caishen.jpg" type="image/jpeg">
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .map-label { background: transparent !important; border: none !important; box-shadow: none !important; color: #fff !important; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,7 +18,7 @@
             color: #333;
         }
         .app-header {
-            background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 14px 24px;
             display: flex;
@@ -55,8 +50,8 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-        .nav-tabs button:hover { color: #e63946; background: #f8f9ff; }
-        .nav-tabs button.active { color: #e63946; border-bottom-color: #e63946; }
+        .nav-tabs button:hover { color: #667eea; background: #f8f9ff; }
+        .nav-tabs button.active { color: #667eea; border-bottom-color: #667eea; }
 
         .tab-content { padding: 20px 24px; display: none; }
         .tab-content.active { display: block; }
@@ -84,7 +79,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
         }
-        .stat-card .number { font-size: 30px; font-weight: 700; color: #e63946; }
+        .stat-card .number { font-size: 30px; font-weight: 700; color: #667eea; }
         .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
 
         .btn {
@@ -97,7 +92,7 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-primary { background: #e63946; color: white; }
+        .btn-primary { background: #667eea; color: white; }
         .btn-primary:hover { background: #5a6fd6; }
         .btn-success { background: #27ae60; color: white; }
         .btn-success:hover { background: #219a52; }
@@ -115,7 +110,7 @@
         .btn-link {
             background: none;
             border: none;
-            color: #e63946;
+            color: #667eea;
             cursor: pointer;
             font-size: 13px;
             text-decoration: underline;
@@ -140,7 +135,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #e63946; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
         .form-group textarea { resize: vertical; min-height: 70px; }
         .form-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -174,7 +169,7 @@
             flex-wrap: wrap;
         }
         .search-bar input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .search-bar input:focus { border-color: #e63946; outline: none; }
+        .search-bar input:focus { border-color: #667eea; outline: none; }
         .search-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: white; }
 
         .pagination {
@@ -191,7 +186,7 @@
             cursor: pointer;
             font-size: 13px;
         }
-        .pagination span.active { background: #e63946; color: white; border-color: #e63946; }
+        .pagination span.active { background: #667eea; color: white; border-color: #667eea; }
         .pagination span:hover:not(.active) { background: #f0f0f0; }
 
         .modal-overlay {
@@ -277,8 +272,8 @@
             transition: all 0.2s;
             margin-bottom: 12px;
         }
-        .import-dropzone:hover { border-color: #e63946; background: #f8f9ff; }
-        .import-dropzone.dragover { border-color: #e63946; background: #eef0ff; }
+        .import-dropzone:hover { border-color: #667eea; background: #f8f9ff; }
+        .import-dropzone.dragover { border-color: #667eea; background: #eef0ff; }
         .import-dropzone p { color: #888; font-size: 14px; }
         .import-dropzone .icon { font-size: 40px; margin-bottom: 10px; }
 
@@ -304,7 +299,10 @@
 </head>
 <body>
     <div class="app-header">
-        <h1>🧧 八方来财客户查重系统</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <img src="/static/caishen.jpg" alt="财神爷" style="width:48px;height:48px;border-radius:10px;object-fit:cover;">
+            <h1 style="margin:0;">🧧 八方来财客户查重系统</h1>
+        </div>
         <div class="user-info">
             <span id="usernameDisplay"></span>
             <a onclick="showChangePassword()">修改密码</a>
@@ -345,19 +343,12 @@
                 <button class="btn btn-primary" onclick="switchTab('tab-analytics')">📈 图表分析</button>
             </div>
         </div>
-        <div class="card">
-            <h2>📍 归属地区域分布</h2>
-            <div id="regionMapContainer">
-                <p style="color:#888; font-size:13px;">加载中...</p>
-            </div>
-            <div id="regionMapDiv" style="height:420px; border-radius:10px; margin-top:12px; border:1px solid #e0e0e0; display:none;"></div>
-        </div>
     </div>
 
     <!-- Tab: Customers -->
     <div id="tab-customers" class="tab-content">
-        <div class="card" style="border: 2px dashed #e63946; background: #f8f9ff;">
-            <h2 style="color:#e63946; margin-bottom:8px;">⚡ 快速添加</h2>
+        <div class="card" style="border: 2px dashed #667eea; background: #f8f9ff;">
+            <h2 style="color:#667eea; margin-bottom:8px;">⚡ 快速添加</h2>
             <p style="font-size:13px; color:#888; margin-bottom:12px;">粘贴客户信息，系统自动识别：电话号码→电话栏，其余内容→姓名栏。每行一个客户。</p>
             <div class="form-group">
                 <textarea id="quickAddText" rows="4" placeholder="每行输入一个客户信息，例如：
@@ -404,20 +395,19 @@
                     <option value="company">公司</option>
                 </select>
                 <button class="btn btn-primary" onclick="searchCustomers()">搜索</button>
-                <button class="btn btn-sm" style="background:#9c27b0; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;" onclick="toggleAdvancedSearch()">🔍 高级</button>
+                <button class="btn btn-sm" style="background:#9c27b0;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;" onclick="toggleAdvancedSearch()">🔍 高级</button>
+                <button class="btn btn-sm" style="background:#e91e63;color:white;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;margin-left:8px;" onclick="showCleanDuplicates()">🧹 批量删除</button>
             </div>
-            <div id="advancedSearchPanel" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:10px; background:#f5f0ff; border-radius:6px; align-items:center;">
-                <label style="font-size:12px; color:#888;">归属地:</label>
-                <select id="searchRegion" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:13px;"><option value="">全部</option></select>
-                <label style="font-size:12px; color:#888;">开始:</label>
-                <input type="date" id="searchDateFrom" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:13px;">
-                <label style="font-size:12px; color:#888;">结束:</label>
-                <input type="date" id="searchDateTo" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:13px;">
-                <label style="font-size:12px; color:#888;">公司:</label>
-                <input type="text" id="searchCompany" placeholder="公司名" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:13px; width:120px;">
-                <button class="btn btn-sm btn-primary" onclick="searchCustomers()" style="padding:5px 12px;">搜索</button>
+            <div id="advancedSearchPanel" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;background:#f8f9ff;padding:12px;border-radius:8px;border:1px solid #d0d5ff;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;width:100%;">
+                    <div><label style="font-size:12px;color:#888;display:block;">归属地</label><select id="searchRegion" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:white;min-width:120px;"><option value="">全部</option></select></div>
+                    <div><label style="font-size:12px;color:#888;display:block;">开始日期</label><input type="date" id="searchDateFrom" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                    <div><label style="font-size:12px;color:#888;display:block;">结束日期</label><input type="date" id="searchDateTo" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                    <div><label style="font-size:12px;color:#888;display:block;">公司名</label><input type="text" id="searchCompany" placeholder="公司名" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                    <button class="btn btn-primary btn-sm" onclick="searchCustomers()" style="margin-top:14px;">筛选</button>
+                    <button class="btn btn-outline btn-sm" onclick="clearAdvancedSearch()" style="margin-top:14px;">清除</button>
+                </div>
             </div>
-            <button class="btn btn-sm" style="background:#e91e63; color:white; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; margin-bottom:8px;" onclick="showCleanDuplicates()">🧹 批量删除重复客户</button>
             <div class="table-container">
                 <table id="customerTable">
                     <thead>
@@ -461,27 +451,12 @@
     <div id="tab-history" class="tab-content">
         <div class="card">
             <h2>查重统计</h2>
-            <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:20px;">
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#e63946,#c1121f); color:white; padding:18px; border-radius:12px; text-align:center;">
-                    <div style="font-size:28px; font-weight:700;" id="csTodayChecks">0</div>
-                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">今日查重</div>
-                </div>
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#43e97b,#38f9d7); color:white; padding:18px; border-radius:12px; text-align:center;">
-                    <div style="font-size:28px; font-weight:700;" id="csTotalChecks">0</div>
-                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">总查重次数</div>
-                </div>
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#fa709a,#fee140); color:white; padding:18px; border-radius:12px; text-align:center;">
-                    <div style="font-size:28px; font-weight:700;" id="csTodayDup">0</div>
-                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">今日重复</div>
-                </div>
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#ff5858,#f09819); color:white; padding:18px; border-radius:12px; text-align:center;">
-                    <div style="font-size:28px; font-weight:700;" id="csTotalDup">0</div>
-                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">总重复数</div>
-                </div>
-                <div style="flex:1; min-width:120px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); color:white; padding:18px; border-radius:12px; text-align:center;">
-                    <div style="font-size:28px; font-weight:700;" id="csAvgRate">0%</div>
-                    <div style="font-size:13px; opacity:0.8; margin-top:4px;">平均重复率</div>
-                </div>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日查重</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总查重次数</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#fa709a,#fee140);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日重复</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#ff5858,#f09819);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总重复数</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#a18cd1,#fbc2eb);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csAvgRate">0%</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">平均重复率</div></div>
             </div>
             <h4>📈 近7天查重趋势</h4>
             <canvas id="checkTrendChart" height="200" style="margin-top:10px;"></canvas>
@@ -531,6 +506,19 @@
                 <p style="font-size:12px;">支持 .csv、.xlsx 和 .txt 文件</p>
                 <input type="file" id="importFile" accept=".csv,.xlsx,.txt" style="display:none" onchange="onFileSelect(this)">
             </div>
+            <div id="importPreviewArea" style="display:none;margin-top:12px;">
+                <div class="table-container" style="max-height:300px;overflow-y:auto;margin-bottom:12px;">
+                    <table>
+                        <thead><tr><th>#</th><th>姓名</th><th>电话</th><th>邮箱</th><th>公司</th><th>备注</th><th>状态</th></tr></thead>
+                        <tbody id="importPreviewTbody"></tbody>
+                    </table>
+                </div>
+                <p id="importPreviewSummary" style="font-size:13px;color:#555;margin-bottom:12px;"></p>
+                <div class="form-actions">
+                    <button class="btn btn-success" id="importConfirmBtn" onclick="confirmImport()">✅ 确认导入</button>
+                    <button class="btn btn-outline" onclick="cancelImport()">取消</button>
+                </div>
+            </div>
             <div class="import-result" id="importResult"></div>
             <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">选择文件导入</button>
         </div>
@@ -540,16 +528,15 @@
     <div id="tab-export" class="tab-content">
         <div class="card">
             <h2>导出数据</h2>
-            <p style="color:#888; font-size:14px; margin-bottom:16px;">将客户数据导出为 Excel 文件（.xlsx 格式）</p>
-            <div style="background:#f8f9ff; padding:14px; border-radius:8px; margin-bottom:14px;">
-                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end;">
-                    <div><label style="font-size:12px; color:#888;">开始日期</label><br><input type="date" id="exportDateFrom" style="padding:6px; border:1px solid #ddd; border-radius:4px;"></div>
-                    <div><label style="font-size:12px; color:#888;">结束日期</label><br><input type="date" id="exportDateTo" style="padding:6px; border:1px solid #ddd; border-radius:4px;"></div>
-                    <div><label style="font-size:12px; color:#888;">归属地</label><br><select id="exportRegion" style="padding:6px; border:1px solid #ddd; border-radius:4px;"><option value="">全部</option></select></div>
-                    <div><label style="font-size:12px; color:#888;">关键词</label><br><input type="text" id="exportSearch" placeholder="姓名/电话/公司" style="padding:6px; border:1px solid #ddd; border-radius:4px;"></div>
-                    <div><button class="btn btn-success" onclick="exportExcel()" style="margin:0;">📤 导出为 Excel</button></div>
-                </div>
+            <p style="color:#888; font-size:14px; margin-bottom:16px;">将客户数据导出为 Excel 文件（.xlsx 格式），可选筛选条件</p>
+            <div class="form-row" style="margin-bottom:16px;background:#f8f9ff;padding:14px;border-radius:8px;border:1px solid #e0e5ff;">
+                <div class="form-group"><label>开始日期</label><input type="date" id="exportDateFrom"></div>
+                <div class="form-group"><label>结束日期</label><input type="date" id="exportDateTo"></div>
+                <div class="form-group"><label>归属地</label><select id="exportRegion"><option value="">全部</option></select></div>
+                <div class="form-group"><label>搜索</label><input type="text" id="exportSearch" placeholder="姓名/电话/公司"></div>
             </div>
+            <button class="btn btn-success" onclick="exportExcel()">📤 导出为 Excel</button>
+        </div>
     </div>
 
     <!-- Modal: Edit Customer -->
@@ -726,10 +713,10 @@
                     // 执行对应操作
                     const action = pendingAction;
                     pendingAction = null;
-                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params, password);
-                    else if (action.name === 'batchDelete') batchDeleteConfirm(password);
-                    else if (action.name === 'exportExcel') exportExcelConfirm(password);
-                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params, password);
+                    if (action.name === 'deleteCustomer') deleteCustomerConfirm(action.params);
+                    else if (action.name === 'batchDelete') batchDeleteConfirm();
+                    else if (action.name === 'exportExcel') exportExcelConfirm();
+                    else if (action.name === 'uploadImport') uploadImportConfirm(action.params);
                 } else {
                     document.getElementById('dataPasswordError').style.display = 'block';
                 }
@@ -742,73 +729,21 @@
         // ========== Dashboard ==========
         async function loadDashboard() {
             try {
-                const res = await fetch('/api/analytics/overview');
-                const data = await res.json();
+                const [overviewRes, statsRes] = await Promise.all([
+                    fetch('/api/analytics/overview'),
+                    fetch('/api/analytics/check-stats')
+                ]);
+                const data = await overviewRes.json();
+                const stats = await statsRes.json();
                 document.getElementById('totalCustomers').textContent = data.total_customers;
                 document.getElementById('todayNew').textContent = data.today_new;
                 document.getElementById('weekNew').textContent = data.week_new;
                 document.getElementById('monthNew').textContent = data.month_new;
-                document.getElementById('todayChecks').textContent = data.today_checks || '-';
-                document.getElementById('totalChecks').textContent = data.total_checks || '-';
-                document.getElementById('highDuplicate').textContent = data.high_duplicate || '-';
-                try {
-                    const cr = await fetch('/api/analytics/check-stats');
-                    const cd = await cr.json();
-                    document.getElementById('todayChecks').textContent = cd.today_checks || 0;
-                    document.getElementById('totalChecks').textContent = cd.total_checks || 0;
-                } catch {}
+                document.getElementById('todayChecks').textContent = stats.today_checks || 0;
+                document.getElementById('totalChecks').textContent = stats.total_checks || 0;
+                document.getElementById('highDuplicate').textContent = data.high_duplicate;
             } catch { /* dashboard load failed */ }
             loadRegionMap();
-        }
-        function loadRegionMap() {
-            fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
-                var c = document.getElementById('regionMapContainer');
-                var entries = Object.entries(data.regions || {}).sort(function(a,b){return b[1]-a[1];});
-                if (!entries.length) { c.innerHTML = '<p style="color:#888;">暂无归属地数据</p>'; return; }
-                var max = entries[0][1];
-                var html = '<div style="max-height:300px; overflow-y:auto;">';
-                entries.forEach(function(arr) {
-                    var region = arr[0], count = arr[1];
-                    var pct = Math.round(count/max*100);
-                    html += '<div style="margin:6px 0;"><span style="font-size:13px; min-width:80px; display:inline-block;">' + region + '</span>' +
-                        '<div style="display:inline-block; width:60%; height:20px; background:#e8e8e8; border-radius:10px; margin:0 8px; vertical-align:middle;">' +
-                        '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#e63946,#c1121f); border-radius:10px; text-align:right; line-height:20px; color:#fff; font-size:11px; padding-right:6px; box-sizing:border-box;">' + count + '</div></div>' +
-                        '<span style="font-size:11px; color:#888;">' + Math.round(count/data.total_with_region*100) + '%</span></div>';
-                });
-                html += '</div>';
-                c.innerHTML = html;
-                
-                var mapDiv = document.getElementById('regionMapDiv');
-                if (!mapDiv) return;
-                var coordEntries = entries.filter(function(e){return data.coords && data.coords[e[0]];});
-                if (coordEntries.length < 2) { mapDiv.style.display = 'none'; return; }
-                mapDiv.style.display = 'block';
-                var map = L.map(mapDiv, { zoomControl: true, attributionControl: false });
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
-                var maxC = coordEntries[0][1];
-                coordEntries.forEach(function(arr) {
-                    var region = arr[0], count = arr[1];
-                    var pt = data.coords[region];
-                    var radius = Math.max(5, Math.sqrt(count / maxC) * 35);
-                    var isCN = region.indexOf('省') >= 0 || region.indexOf('市') >= 0 || region === '香港' || region === '澳门';
-                    var marker = L.circleMarker([pt.lat, pt.lng], {
-                        radius: radius,
-                        fillColor: isCN ? '#e91e63' : '#e63946',
-                        color: '#fff',
-                        weight: 2,
-                        fillOpacity: 0.65
-                    }).addTo(map);
-                    var labelText = count >= 10000 ? (count/10000).toFixed(1) + '万' : count.toLocaleString();
-                    marker.bindTooltip('<div style="font-weight:bold;font-size:11px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);">' + region + '<br>' + labelText + '</div>', {permanent:true,direction:'center',className:'map-label'});
-                    marker.bindPopup('<strong>' + region + '</strong><br>客户数量: <strong style="color:#e63946;">' + count.toLocaleString() + '</strong><br>占比: ' + Math.round(count/data.total_with_region*100) + '%');
-                });
-                var latlngs = coordEntries.map(function(e){return [data.coords[e[0]].lat, data.coords[e[0]].lng];});
-                var bounds = L.latLngBounds(latlngs);
-                if (bounds.isValid()) { map.fitBounds(bounds, { padding: [20, 20] }); }
-                else { map.setView([30, 105], 2); }
-            }).catch(function() {
-                document.getElementById('regionMapContainer').innerHTML = '<p style="color:#888;">加载失败</p>';
-            });
         }
 
         // ========== Customers CRUD ==========
@@ -820,22 +755,17 @@
             currentPage = page;
             const search = document.getElementById('customerSearch').value.trim();
             const field = document.getElementById('searchField').value;
-            var region = '', dateFrom = '', dateTo = '', company = '';
-            var regEl = document.getElementById('searchRegion');
-            if (regEl) region = regEl.value;
-            var dfEl = document.getElementById('searchDateFrom');
-            if (dfEl) dateFrom = dfEl.value;
-            var dtEl = document.getElementById('searchDateTo');
-            if (dtEl) dateTo = dtEl.value;
-            var coEl = document.getElementById('searchCompany');
-            if (coEl) company = coEl.value.trim();
+            var region = document.getElementById('searchRegion') ? document.getElementById('searchRegion').value : '';
+            var dateFrom = document.getElementById('searchDateFrom') ? document.getElementById('searchDateFrom').value : '';
+            var dateTo = document.getElementById('searchDateTo') ? document.getElementById('searchDateTo').value : '';
+            var company = document.getElementById('searchCompany') ? document.getElementById('searchCompany').value.trim() : '';
             currentSearch = search;
             try {
-                let url = '/api/customers?page=' + page + '&search=' + encodeURIComponent(search) + '&field=' + field;
-                if (region) url += '&region=' + encodeURIComponent(region);
-                if (dateFrom) url += '&date_from=' + encodeURIComponent(dateFrom);
-                if (dateTo) url += '&date_to=' + encodeURIComponent(dateTo);
-                if (company) url += '&company=' + encodeURIComponent(company);
+                var url = `/api/customers?page=${page}&search=${encodeURIComponent(search)}&field=${field}`;
+                if (region) { url += `&region=${encodeURIComponent(region)}`; }
+                if (dateFrom) { url += `&date_from=${encodeURIComponent(dateFrom)}`; }
+                if (dateTo) { url += `&date_to=${encodeURIComponent(dateTo)}`; }
+                if (company) { url += `&company=${encodeURIComponent(company)}`; }
                 const res = await fetch(url);
                 const data = await res.json();
                 allCustomers = data.customers;
@@ -864,44 +794,42 @@
                 tbody.appendChild(tr);
             });
 
-            const totalPages = Math.ceil(data.total / data.per_page);
-            const pg = document.getElementById('customerPagination');
+            var totalPages = Math.ceil(data.total / data.per_page);
+            var pg = document.getElementById('customerPagination');
             pg.innerHTML = '';
-            const prev = document.createElement('span');
-            prev.textContent = '‹';
-            prev.style.cssText = 'font-size:16px; padding:5px 10px;';
-            if (currentPage > 1) prev.onclick = function(){ loadCustomers(currentPage - 1); };
-            else { prev.style.cssText += ' color:#ccc; cursor:default;'; }
-            pg.appendChild(prev);
-            const maxVisible = 10;
-            var start = Math.max(1, currentPage - 4);
-            var end = Math.min(totalPages, start + maxVisible - 1);
-            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-            if (start > 1) {
+            var prv = document.createElement('span');
+            prv.textContent = '‹';
+            prv.style.cssText = 'font-size:16px;padding:5px 10px;';
+            if (currentPage > 1) { prv.onclick = function(){ loadCustomers(currentPage - 1); }; } else { prv.style.cssText += 'color:#ccc;cursor:default;'; }
+            pg.appendChild(prv);
+            var maxV = 10;
+            var st = Math.max(1, currentPage - 4);
+            var en = Math.min(totalPages, st + maxV - 1);
+            if (en - st < maxV - 1) { st = Math.max(1, en - maxV + 1); }
+            if (st > 1) {
                 var f = document.createElement('span'); f.textContent = '1'; f.onclick = function(){ loadCustomers(1); }; pg.appendChild(f);
-                if (start > 2) { var dot1 = document.createElement('span'); dot1.textContent = '...'; dot1.style.cssText = 'cursor:default; color:#888; border:none;'; pg.appendChild(dot1); }
+                if (st > 2) { var d = document.createElement('span'); d.textContent = '...'; d.style.cssText = 'cursor:default;color:#888;border:none;'; pg.appendChild(d); }
             }
-            for (var i = start; i <= end; i++) {
+            for (var i = st; i <= en; i++) {
                 var sp = document.createElement('span');
                 sp.textContent = i;
-                if (i === currentPage) sp.classList.add('active');
+                if (i === currentPage) { sp.classList.add('active'); }
                 sp.onclick = (function(p){ return function(){ loadCustomers(p); }; })(i);
                 pg.appendChild(sp);
             }
-            if (end < totalPages) {
-                if (end < totalPages - 1) { var dot2 = document.createElement('span'); dot2.textContent = '...'; dot2.style.cssText = 'cursor:default; color:#888; border:none;'; pg.appendChild(dot2); }
-                var last = document.createElement('span'); last.textContent = totalPages; last.onclick = function(){ loadCustomers(totalPages); }; pg.appendChild(last);
+            if (en < totalPages) {
+                if (en < totalPages - 1) { var d2 = document.createElement('span'); d2.textContent = '...'; d2.style.cssText = 'cursor:default;color:#888;border:none;'; pg.appendChild(d2); }
+                var l = document.createElement('span'); l.textContent = totalPages; l.onclick = function(){ loadCustomers(totalPages); }; pg.appendChild(l);
             }
-            const next = document.createElement('span');
-            next.textContent = '›';
-            next.style.cssText = 'font-size:16px; padding:5px 10px;';
-            if (currentPage < totalPages) next.onclick = function(){ loadCustomers(currentPage + 1); };
-            else { next.style.cssText += ' color:#ccc; cursor:default;'; }
-            pg.appendChild(next);
-            var jumpSpan = document.createElement('span');
-            jumpSpan.style.cssText = 'display:flex; align-items:center; gap:4px; margin-left:6px; border:none; cursor:default;';
-            jumpSpan.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px; padding:4px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center;"> <button style="padding:4px 8px; border:1px solid #e63946; background:#e63946; color:white; border-radius:4px; cursor:pointer; font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px; color:#888; margin-left:2px;">共' + totalPages + '页</span>';
-            pg.appendChild(jumpSpan);
+            var nx = document.createElement('span');
+            nx.textContent = '›';
+            nx.style.cssText = 'font-size:16px;padding:5px 10px;';
+            if (currentPage < totalPages) { nx.onclick = function(){ loadCustomers(currentPage + 1); }; } else { nx.style.cssText += 'color:#ccc;cursor:default;'; }
+            pg.appendChild(nx);
+            var js = document.createElement('span');
+            js.style.cssText = 'display:flex;align-items:center;gap:4px;margin-left:6px;border:none;cursor:default;';
+            js.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> <button style="padding:4px 8px;border:1px solid #667eea;background:#667eea;color:white;border-radius:4px;cursor:pointer;font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px;color:#888;margin-left:2px;">共' + totalPages + '页</span>';
+            pg.appendChild(js);
             updateBatchDeleteBtn();
         }
 
@@ -954,18 +882,11 @@
                         html += '<div style="margin-top:10px; padding:12px; background:#fff8e1; border-radius:6px; border-left:4px solid #ff9800;">';
                         html += '<p style="color:#e65100; font-weight:bold; margin-bottom:8px;">⚠️ 以下 ' + data.duplicates.length + ' 条跳过（检测到重复）：</p>';
                         html += '<div class="table-container" style="max-height:200px; overflow-y:auto;"><table style="font-size:12px;"><thead><tr><th>原始内容</th><th>匹配客户</th><th>电话</th><th>匹配字段</th><th>入库时间</th></tr></thead><tbody>';
-                        // 兼容：扁平格式[{name,phone,field}] 或 分组格式[{line, duplicates: [...]}]
-                        if (data.duplicates[0] && data.duplicates[0].duplicates) {
-                            data.duplicates.forEach(function(d) {
-                                d.duplicates.forEach(function(dup) {
-                                    html += '<tr><td style="max-width:100px; overflow:hidden;">' + (d.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
-                                });
+                        data.duplicates.forEach(function(d) {
+                            d.duplicates.forEach(function(dup) {
+                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + d.line.substring(0,20) + '</td><td>' + dup.name + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + dup.field + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at || '-') + '</td></tr>';
                             });
-                        } else {
-                            data.duplicates.forEach(function(dup) {
-                                html += '<tr><td style="max-width:100px; overflow:hidden;">' + (dup.source_line||dup.line||'').substring(0,20) + '</td><td>' + (dup.name||'-') + '</td><td>' + (dup.phone || '-') + '</td><td><span class="badge">' + (dup.field||'') + '</span></td><td style="font-size:11px; color:#888;">' + (dup.created_at||'').substring(0,10) + '</td></tr>';
-                            });
-                        }
+                        });
                         html += '</tbody></table></div></div></div>';
                         el.innerHTML = html;
                     } else {
@@ -1153,11 +1074,11 @@
                 closeModal();
             }
         }async function deleteCustomer(id) {
-            deleteCustomerConfirm(id, 'sufahui520');
+            showDataPasswordModal('deleteCustomer', id);
         }
-        async function deleteCustomerConfirm(id, pwd) {
+        async function deleteCustomerConfirm(id) {
             try {
-                const res = await fetch(`/api/customers/${id}?pwd=${encodeURIComponent(pwd || window._dataPassword || '')}`, { method: 'DELETE' });
+                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
                 if ((await res.json()).ok) {
                     showToast('删除成功');
                     loadCustomers(currentPage);
@@ -1176,13 +1097,13 @@
         async function batchDelete() {
             const ids = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => parseInt(cb.value));
             if (ids.length === 0) return;
-            batchDeleteConfirm(ids, 'sufahui520');
+            showDataPasswordModal('batchDelete', ids);
         }
-        async function batchDeleteConfirm(pwd) {
+        async function batchDeleteConfirm() {
             const ids = pendingAction ? pendingAction.params : [];
             if (ids.length === 0) return;
             try {
-                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids: ids, pwd: pwd || window._dataPassword || ''}) });
+                const res = await fetch('/api/customers/batch-delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
                 const result = await res.json();
                 if (result.ok) {
                     showToast(`成功删除 ${result.deleted} 个客户`);
@@ -1346,7 +1267,7 @@
                         datasets: [{
                             label: '新增客户',
                             data: counts,
-                            borderColor: '#e63946',
+                            borderColor: '#667eea',
                             backgroundColor: 'rgba(102,126,234,0.1)',
                             fill: true,
                             tension: 0.3,
@@ -1374,7 +1295,7 @@
                             label: '查重次数',
                             data: checkCounts,
                             backgroundColor: 'rgba(102,126,234,0.6)',
-                            borderColor: '#e63946',
+                            borderColor: '#667eea',
                             borderWidth: 1
                         }]
                     },
@@ -1451,58 +1372,98 @@
             }
         });
 
+        var _pendingImportFile = null;
         function onFileSelect(input) {
-            if (input.files.length) uploadImportConfirm(input.files[0], 'sufahui520');
+            if (input.files.length) {
+                _pendingImportFile = input.files[0];
+                previewImportFile(input.files[0]);
+            }
         }
 
-        async function uploadImportConfirm(file, pwd) {
-            const resultEl = document.getElementById('importResult');
+                async function confirmImport() {
+            if (!_pendingImportFile) return;
+            showDataPasswordModal('uploadImport', _pendingImportFile);
+        }
+        function cancelImport() {
+            document.getElementById('importPreviewArea').style.display = 'none';
+            document.getElementById('dropzone').style.display = 'block';
+            document.getElementById('importFile').value = '';
+            _pendingImportFile = null;
+        }
+        async function previewImportFile(file) {
             const ext = file.name.split('.').pop().toLowerCase();
-            if (!['csv', 'xlsx', 'txt'].includes(ext)) {
-                resultEl.className = 'import-result error';
-                resultEl.innerHTML = `<p style="color:#e74c3c;">❌ 仅支持 CSV 和 XLSX 格式</p>`;
-                return;
-            }
-
-            resultEl.className = 'import-result success';
-            resultEl.innerHTML = `<p>⏳ 正在导入 <strong>${file.name}</strong>，请稍候...</p>`;
-
+            if (!['csv','xlsx','txt'].includes(ext)) { showToast('仅支持 CSV、XLSX 和 TXT 格式','error'); return; }
             const formData = new FormData();
             formData.append('file', file);
-
             try {
-                formData.append('pwd', pwd || window._dataPassword || '');
-            const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
+                const res = await fetch('/api/customers/import-preview', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!data.ok) { showToast(data.error||'预览失败','error'); return; }
+                var tbody = document.getElementById('importPreviewTbody');
+                tbody.innerHTML = '';
+                data.preview.forEach(function(p) {
+                    var tr = document.createElement('tr');
+                    var status = p.is_duplicate ? '<span style="color:#e74c3c;">⚠️ 可能重复</span>' : '<span style="color:#27ae60;">✅ 新客户</span>';
+                    tr.innerHTML = '<td>' + p.index + '</td><td>' + (p.name||'-') + '</td><td>' + (p.phone||'-') + '</td><td>' + (p.email||'-') + '</td><td>' + (p.company||'-') + '</td><td>' + (p.notes||'-') + '</td><td>' + status + '</td>';
+                    tbody.appendChild(tr);
+                });
+                var summary = '共 ' + data.total + ' 条记录，其中 ' + data.duplicate_count + ' 条可能重复（显示前' + Math.min(20,data.preview.length) + '条预览）';
+                document.getElementById('importPreviewSummary').textContent = summary;
+                document.getElementById('importPreviewArea').style.display = 'block';
+                document.getElementById('dropzone').style.display = 'none';
+                document.getElementById('importResult').className = 'import-result';
+                document.getElementById('importResult').style.display = 'none';
+            } catch { showToast('预览失败','error'); }
+        }
+        async function uploadImportConfirm(file) {
+            const resultEl = document.getElementById('importResult');
+            resultEl.innerHTML = '<p>⏳ 正在导入 <strong>' + file.name + '</strong>，请稍候...</p>';
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/customers/import', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.ok) {
-                    let html = `<p>✅ 导入完成：成功 ${data.imported}/${data.total} 条</p>`;
+                    var html2 = '<p>✅ 导入完成：成功 ' + data.imported + '/' + data.total + ' 条</p>';
                     if (data.has_errors && data.errors.length > 0) {
-                        html += `<div style="margin-top:8px; max-height:200px; overflow-y:auto;"><p style="color:#e74c3c; font-weight:500;">错误详情：</p><ul style="font-size:12px; color:#888;">`;
-                        data.errors.forEach(err => { html += `<li>${err}</li>`; });
-                        if (data.error_summary) html += `<li>${data.error_summary}</li>`;
-                        html += `</ul></div>`;
+                        html2 += '<div style="margin-top:8px; max-height:200px; overflow-y:auto;"><p style="color:#e74c3c; font-weight:500;">错误详情：</p><ul style="font-size:12px; color:#888;">';
+                        data.errors.forEach(function(err2){ html2 += '<li>' + err2 + '</li>'; });
+                        if (data.error_summary) html2 += '<li>' + data.error_summary + '</li>';
+                        html2 += '</ul></div>';
                     }
                     resultEl.className = 'import-result success';
-                    resultEl.innerHTML = html;
+                    resultEl.innerHTML = html2;
+                    document.getElementById('importPreviewArea').style.display = 'none';
+                    document.getElementById('dropzone').style.display = 'block';
+                    document.getElementById('importFile').value = '';
+                    _pendingImportFile = null;
                     if (data.imported > 0) loadCustomers(1);
                 } else {
                     resultEl.className = 'import-result error';
-                    resultEl.innerHTML = `<p style="color:#e74c3c;">❌ ${data.error || '导入失败'}</p>`;
+                    resultEl.innerHTML = '<p style="color:#e74c3c;">❌ ' + (data.error || '导入失败') + '</p>';
                 }
             } catch {
                 resultEl.className = 'import-result error';
-                resultEl.innerHTML = `<p style="color:#e74c3c;">❌ 网络错误，导入失败</p>`;
+                resultEl.innerHTML = '<p style="color:#e74c3c;">❌ 网络错误，导入失败</p>';
             }
         }
-
-        // ========== Export ==========
+        async function exportExcel
         async function exportExcel() {
-            exportExcelConfirm('sufahui520');
+            showDataPasswordModal('exportExcel', null);
         }
-        async function exportExcelConfirm(pwd) {
-            pwd = pwd || window._dataPassword || document.getElementById('dataPasswordInput').value;
+        async function exportExcelConfirm() {
+            const pwd = document.getElementById('dataPasswordInput').value;
+            var url = '/api/export/excel?pwd=' + encodeURIComponent(pwd);
+            var df = document.getElementById('exportDateFrom') ? document.getElementById('exportDateFrom').value : '';
+            var dt = document.getElementById('exportDateTo') ? document.getElementById('exportDateTo').value : '';
+            var reg = document.getElementById('exportRegion') ? document.getElementById('exportRegion').value : '';
+            var sch = document.getElementById('exportSearch') ? document.getElementById('exportSearch').value.trim() : '';
+            if (df) url += '&start_date=' + encodeURIComponent(df);
+            if (dt) url += '&end_date=' + encodeURIComponent(dt);
+            if (reg) url += '&region=' + encodeURIComponent(reg);
+            if (sch) url += '&search=' + encodeURIComponent(sch);
             try {
-                const res = await fetch('/api/export/excel?pwd=' + encodeURIComponent(pwd));
+                const res = await fetch(url);
                 if (!res.ok) { showToast('导出失败', 'error'); return; }
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
@@ -1520,84 +1481,125 @@
 
         // ========== Init ==========
         loadDashboard();
-            function jumpToPage() {
-            var input = document.getElementById('pageJumpInput');
-            if (!input) return;
-            var p = parseInt(input.value);
-            if (p >= 1) loadCustomers(p);
+    
+        function jumpToPage() {
+            var inp = document.getElementById('pageJumpInput');
+            if (inp) { var p = parseInt(inp.value); if (p >= 1) loadCustomers(p); }
+        }
+        function showCleanDuplicates() {
+            fetch('/api/customers/batch-clean-duplicates').then(function(r){return r.json();}).then(function(data) {
+                if (!data.total_groups) { showToast('未发现重复客户','info'); return; }
+                var msg = '发现 ' + data.total_groups + ' 组重复客户\n';
+                for (var i = 0; i < data.groups.length && i < 5; i++) { msg += '\n[' + data.groups[i].type + '] ' + data.groups[i].key + ' (' + data.groups[i].count + '条)'; }
+                if (data.groups.length > 5) msg += '\n...等' + data.total_groups + '组';
+                var c = prompt(msg + '\n\n编号（1-' + data.total_groups + '）或取消：','1');
+                if (!c) return;
+                var idx = parseInt(c)-1;
+                if (idx < 0 || idx >= data.groups.length) { showToast('无效','error'); return; }
+                var g = data.groups[idx];
+                var a = prompt('组: ' + g.key + ' (' + g.count + '条)\n1=保留第1条\n2=全部删除\n3=跳过','1');
+                if (a === '1') {
+                    fetch('/api/customers/batch-clean-duplicates/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'keep_one',ids:g.customers.map(function(x){return x.id;}),pwd:window._dataPassword||''})})
+                    .then(function(r){return r.json();}).then(function(d){if(d.ok){showToast('已清理 '+d.deleted+' 条');loadCustomers(1);}else showToast('失败','error');});
+                } else if (a === '2') {
+                    fetch('/api/customers/batch-clean-duplicates/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_all',ids:g.customers.map(function(x){return x.id;}),pwd:window._dataPassword||''})})
+                    .then(function(r){return r.json();}).then(function(d){if(d.ok){showToast('已删除 '+d.deleted+' 条');loadCustomers(1);}else showToast('失败','error');});
+                }
+            }).catch(function(){showToast('加载失败','error');});
         }
         function toggleAdvancedSearch() {
             var p = document.getElementById('advancedSearchPanel');
             if (!p) return;
-            p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+            var vis = p.style.display === 'flex';
+            p.style.display = vis ? 'none' : 'flex';
+            if (!vis) loadRegionsForSearch();
+        }
+        function clearAdvancedSearch() {
+            if (document.getElementById('searchRegion')) document.getElementById('searchRegion').value = '';
+            if (document.getElementById('searchDateFrom')) document.getElementById('searchDateFrom').value = '';
+            if (document.getElementById('searchDateTo')) document.getElementById('searchDateTo').value = '';
+            if (document.getElementById('searchCompany')) document.getElementById('searchCompany').value = '';
+            searchCustomers();
+        }
+        async function loadRegionsForSearch() {
+            try {
+                var res = await fetch('/api/analytics/region-map');
+                var d = await res.json();
+                var sel = document.getElementById('searchRegion');
+                if (!sel) return;
+                var cur = sel.value;
+                sel.innerHTML = '<option value="">全部</option>';
+                var entries = Object.entries(d.regions || {}).sort(function(a,b){return b[1]-a[1];});
+                for (var i = 0; i < entries.length; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = entries[i][0];
+                    opt.textContent = entries[i][0] + ' (' + entries[i][1] + ')';
+                    sel.appendChild(opt);
+                }
+                sel.value = cur;
+            } catch(e) {}
         }
         async function loadCheckStats() {
             try {
                 var res = await fetch('/api/analytics/check-stats');
-                var data = await res.json();
-                var el1 = document.getElementById('csTodayChecks');
-                var el2 = document.getElementById('csTotalChecks');
-                var el3 = document.getElementById('csTodayDup');
-                var el4 = document.getElementById('csTotalDup');
-                var el5 = document.getElementById('csAvgRate');
-                if (el1) el1.textContent = data.today_checks || 0;
-                if (el2) el2.textContent = data.total_checks || 0;
-                if (el3) el3.textContent = data.today_duplicate || 0;
-                if (el4) el4.textContent = data.total_duplicate || 0;
-                if (el5) el5.textContent = (data.avg_duplicate_rate || 0) + '%';
+                var d = await res.json();
+                if (document.getElementById('csTodayChecks')) document.getElementById('csTodayChecks').textContent = d.today_checks || 0;
+                if (document.getElementById('csTotalChecks')) document.getElementById('csTotalChecks').textContent = d.total_checks || 0;
+                if (document.getElementById('csTodayDup')) document.getElementById('csTodayDup').textContent = d.today_duplicate || 0;
+                if (document.getElementById('csTotalDup')) document.getElementById('csTotalDup').textContent = d.total_duplicate || 0;
+                if (document.getElementById('csAvgRate')) document.getElementById('csAvgRate').textContent = (d.avg_duplicate_rate || 0) + '%';
                 var ctx = document.getElementById('checkTrendChart');
                 if (ctx) {
                     if (window._checkTrendChart) window._checkTrendChart.destroy();
-                    var trend = data.weekly_trend || [];
+                    var tr = d.weekly_trend || [];
                     window._checkTrendChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: trend.map(function(d){return d.date.slice(5);}),
-                            datasets: [{label: '查重次数', data: trend.map(function(d){return d.count;}), borderColor: '#e63946', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3}]
-                        },
-                        options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
+                        type:'line',
+                        data:{labels:tr.map(function(x){return x.date.slice(5);}),datasets:[{label:'查重次数',data:tr.map(function(x){return x.count;}),borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.1)',fill:true,tension:0.3}]},
+                        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
                     });
                 }
-            } catch { /* check stats load failed */ }
+            } catch(e) {}
         }
-        async function showCleanDuplicates() {
-            try {
-                var res = await fetch('/api/customers/batch-clean-duplicates');
-                var data = await res.json();
-                if (!data.total_groups) { showToast('未发现重复客户', 'info'); return; }
-                var msg = '发现 ' + data.total_groups + ' 组重复客户：\n';
-                for (var i = 0; i < data.groups.length && i < 5; i++) {
-                    msg += '\n[' + data.groups[i].type + '] ' + data.groups[i].key + ' (' + data.groups[i].count + '条)';
+        function loadRegionMap() {
+            fetch('/api/analytics/region-map').then(function(r){return r.json();}).then(function(data) {
+                var c = document.getElementById('regionMapContainer');
+                var entries = Object.entries(data.regions || {}).sort(function(a,b){return b[1]-a[1];});
+                if (!entries.length) { c.innerHTML = '<p style="color:#888;">暂无数据</p>'; return; }
+                var max = entries[0][1];
+                var html = '<div style="max-height:300px;overflow-y:auto;">';
+                for (var i = 0; i < entries.length; i++) {
+                    var arr = entries[i];
+                    var pct = Math.round(arr[1]/max*100);
+                    html += '<div style="margin:6px 0;"><span style="font-size:13px;min-width:80px;display:inline-block;">' + arr[0] + '</span><div style="display:inline-block;width:60%;height:20px;background:#e8e8e8;border-radius:10px;margin:0 8px;vertical-align:middle;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:10px;text-align:right;line-height:20px;color:#fff;font-size:11px;padding-right:6px;box-sizing:border-box;">' + arr[1] + '</div></div><span style="font-size:11px;color:#888;">' + Math.round(arr[1]/data.total_with_region*100) + '%</span></div>';
                 }
-                if (data.groups.length > 5) msg += '\n...等' + data.total_groups + '组';
-                var choice = prompt(msg + '\n\n输入要操作的组号（1-' + data.total_groups + '）或取消退出：', '1');
-                if (!choice) return;
-                var idx = parseInt(choice) - 1;
-                if (idx < 0 || idx >= data.groups.length) { showToast('无效编号', 'error'); return; }
-                var g = data.groups[idx];
-                var action = prompt('组: ' + g.key + ' (' + g.count + '条)\n输入 1 = 保留第1条删除其余\n输入 2 = 全部删除\n输入 3 = 跳过', '1');
-                if (action === '1') {
-                    var ids = g.customers.map(function(c){return c.id;});
-                    var r = await fetch('/api/customers/batch-clean-duplicates/action', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({action: 'keep_one', ids: ids, pwd: window._dataPassword || ''})
-                    });
-                    var d = await r.json();
-                    if (d.ok) { showToast('已清理 ' + d.deleted + ' 条重复'); loadCustomers(1); }
-                    else showToast('清理失败: ' + (d.error || ''), 'error');
-                } else if (action === '2') {
-                    var ids2 = g.customers.map(function(c){return c.id;});
-                    var r2 = await fetch('/api/customers/batch-clean-duplicates/action', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({action: 'delete_all', ids: ids2, pwd: window._dataPassword || ''})
-                    });
-                    var d2 = await r2.json();
-                    if (d2.ok) { showToast('已删除 ' + d2.deleted + ' 条'); loadCustomers(1); }
-                    else showToast('删除失败', 'error');
+                html += '</div>';
+                c.innerHTML = html;
+                var md = document.getElementById('regionMapDiv');
+                if (!md) return;
+                var ce = [];
+                for (var j = 0; j < entries.length; j++) { if (data.coords && data.coords[entries[j][0]]) { ce.push(entries[j]); } }
+                if (ce.length < 2) { md.style.display = 'none'; return; }
+                md.style.display = 'block';
+                var map = L.map(md, {zoomControl:true,attributionControl:false});
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:''}).addTo(map);
+                var mxc = ce[0][1];
+                for (var k = 0; k < ce.length; k++) {
+                    var e = ce[k];
+                    var pt = data.coords[e[0]];
+                    var r = Math.max(8, Math.sqrt(e[1]/mxc) * 35);
+                    var mk = L.circleMarker([pt.lat,pt.lng],{radius:r,fillColor:'#667eea',color:'#fff',weight:2,fillOpacity:0.65}).addTo(map);
+                    var lb = e[1] >= 10000 ? (e[1]/10000).toFixed(1) + '万' : e[1].toLocaleString();
+                    mk.bindTooltip('<div style="text-align:center;font-weight:bold;font-size:11px;">'+e[0]+'<br>'+lb+'</div>',{permanent:true,direction:'center',className:'map-label'});
+                    mk.bindPopup('<strong>'+e[0]+'</strong><br>客户: <strong style="color:#667eea;">'+e[1].toLocaleString()+'</strong> ('+Math.round(e[1]/data.total_with_region*100)+'%)');
                 }
-            } catch { showToast('加载重复数据失败', 'error'); }
+                var bl = L.latLngBounds([]);
+                for (var l = 0; l < ce.length; l++) { bl.extend([data.coords[ce[l][0]].lat, data.coords[ce[l][0]].lng]); }
+                if (bl.isValid()) { map.fitBounds(bl,{padding:[20,20]}); } else { map.setView([30,105],2); }
+            }).catch(function(){
+                var e = document.getElementById('regionMapContainer');
+                if (e) e.innerHTML = '<p style="color:#888;">加载失败</p>';
+            });
         }
-
     </script>
 </body>
 </html>
