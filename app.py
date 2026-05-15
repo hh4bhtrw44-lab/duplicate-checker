@@ -1817,11 +1817,11 @@ def api_quick_add():
         if name:
             same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ?", (name,)).fetchall()
             for r in same_name:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u59d3\u540d", "created_at": ""})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u59d3\u540d", "created_at": r["created_at"]})
         if phone:
             same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != ''", (phone,)).fetchall()
             for r in same_phone:
-                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd", "created_at": ""})
+                duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "\u7535\u8bdd", "created_at": r["created_at"]})
 
         if duplicates:
             for dup in duplicates:
