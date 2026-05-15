@@ -587,12 +587,12 @@ def api_add_customer():
     # ====== 去重检测 ======
     duplicates = []
     if name:
-        same_name = db.execute("SELECT id, name, phone, company FROM customers WHERE name = ? AND id != ?",
+        same_name = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE name = ? AND id != ?",
                                (name, request.json.get('id', 0) or 0)).fetchall()
         for r in same_name:
             duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "姓名", "created_at": r["created_at"]})
     if phone:
-        same_phone = db.execute("SELECT id, name, phone, company FROM customers WHERE phone = ? AND phone != '' AND id != ?",
+        same_phone = db.execute("SELECT id, name, phone, company, created_at FROM customers WHERE phone = ? AND phone != '' AND id != ?",
                                 (phone, request.json.get('id', 0) or 0)).fetchall()
         for r in same_phone:
             duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话", "created_at": r["created_at"]})
