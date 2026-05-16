@@ -1,0 +1,6 @@
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+[32mForwarding HTTP traffic from https://33da2bd7d2e51de0-1-95-104-32.serveousercontent.com
+[0m[33mTip (1): Create an account to reserve names. Pro removes the warning page: https://console.serveo.net/settings?n=1&src=ssh_nudge&v=B
+[0m[Wed May 13 19:08:18 CST 2026] 正在连接 serveo.net ...
+[Wed May 13 19:08:18 CST 2026] Pseudo-terminal will not be allocated because stdin is not a terminal.
+[Wed May 13 19:08:21 CST 2026] [32mForwarding HTTP traffic from https://ec7f500060a143a9-1-95-104-84.serveousercontent.com
