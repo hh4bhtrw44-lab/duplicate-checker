@@ -18,7 +18,7 @@
             color: #333;
         }
         .app-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
             color: white;
             padding: 14px 24px;
             display: flex;
@@ -50,8 +50,8 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-        .nav-tabs button:hover { color: #667eea; background: #f8f9ff; }
-        .nav-tabs button.active { color: #667eea; border-bottom-color: #667eea; }
+        .nav-tabs button:hover { color: #e74c3c; background: #fdf2f2; }
+        .nav-tabs button.active { color: #e74c3c; border-bottom-color: #e74c3c; }
 
         .tab-content { padding: 20px 24px; display: none; }
         .tab-content.active { display: block; }
@@ -79,7 +79,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
         }
-        .stat-card .number { font-size: 30px; font-weight: 700; color: #667eea; }
+        .stat-card .number { font-size: 30px; font-weight: 700; color: #e74c3c; }
         .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
 
         .btn {
@@ -92,8 +92,8 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5a6fd6; }
+        .btn-primary { background: #e74c3c; color: white; }
+        .btn-primary:hover { background: #c0392b; }
         .btn-success { background: #27ae60; color: white; }
         .btn-success:hover { background: #219a52; }
         .btn-danger { background: #e74c3c; color: white; }
@@ -110,13 +110,13 @@
         .btn-link {
             background: none;
             border: none;
-            color: #667eea;
+            color: #e74c3c;
             cursor: pointer;
             font-size: 13px;
             text-decoration: underline;
             padding: 0;
         }
-        .btn-link:hover { color: #5a6fd6; }
+        .btn-link:hover { color: #c0392b; }
 
         .form-row {
             display: grid;
@@ -135,7 +135,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #e74c3c; }
         .form-group textarea { resize: vertical; min-height: 70px; }
         .form-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -146,7 +146,7 @@
             font-size: 14px;
         }
         table th {
-            background: #f8f9fa;
+            background: #fdf2f2;
             padding: 9px 10px;
             text-align: left;
             font-size: 13px;
@@ -159,7 +159,7 @@
             padding: 9px 10px;
             border-bottom: 1px solid #eee;
         }
-        table tr:hover { background: #f8f9ff; }
+        table tr:hover { background: #fdf2f2; }
         .table-actions { display: flex; gap: 4px; }
 
         .search-bar {
@@ -169,7 +169,7 @@
             flex-wrap: wrap;
         }
         .search-bar input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .search-bar input:focus { border-color: #667eea; outline: none; }
+        .search-bar input:focus { border-color: #e74c3c; outline: none; }
         .search-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: white; }
 
         .pagination {
@@ -186,7 +186,7 @@
             cursor: pointer;
             font-size: 13px;
         }
-        .pagination span.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination span.active { background: #e74c3c; color: white; border-color: #e74c3c; }
         .pagination span:hover:not(.active) { background: #f0f0f0; }
 
         .modal-overlay {
@@ -212,8 +212,8 @@
         .modal h2 { margin-bottom: 18px; font-size: 19px; }
 
         .result-card {
-            background: #f8f9ff;
-            border: 2px solid #e0e5ff;
+            background: #fdf2f2;
+            border: 2px solid #f0d0d0;
             border-radius: 12px;
             padding: 18px;
             margin-top: 14px;
@@ -272,8 +272,8 @@
             transition: all 0.2s;
             margin-bottom: 12px;
         }
-        .import-dropzone:hover { border-color: #667eea; background: #f8f9ff; }
-        .import-dropzone.dragover { border-color: #667eea; background: #eef0ff; }
+        .import-dropzone:hover { border-color: #e74c3c; background: #fdf2f2; }
+        .import-dropzone.dragover { border-color: #e74c3c; background: #fce8e8; }
         .import-dropzone p { color: #888; font-size: 14px; }
         .import-dropzone .icon { font-size: 40px; margin-bottom: 10px; }
 
@@ -354,14 +354,14 @@
 
     <!-- Tab: Customers -->
     <div id="tab-customers" class="tab-content">
-        <div class="card" style="border: 2px dashed #667eea; background: #f8f9ff;">
-            <h2 style="color:#667eea; margin-bottom:8px;">⚡ 快速添加</h2>
+        <div class="card" style="border: 2px dashed #e74c3c; background: #fdf2f2;">
+            <h2 style="color:#e74c3c; margin-bottom:8px;">⚡ 快速添加</h2>
             <p style="font-size:13px; color:#888; margin-bottom:12px;">粘贴客户信息，系统自动识别：电话号码→电话栏，其余内容→姓名栏。每行一个客户。</p>
             <div class="form-group">
                 <textarea id="quickAddText" rows="4" placeholder="每行输入一个客户信息，例如：
 张三 13800138000
 李四 13912345678 某某公司
-+8615901234567 王五" style="width:100%; padding:10px; border:1px solid #d0d5ff; border-radius:6px; font-size:14px;"></textarea>
++8615901234567 王五" style="width:100%; padding:10px; border:1px solid #e8b0b0; border-radius:6px; font-size:14px;"></textarea>
             </div>
             <button class="btn btn-primary" onclick="quickAddCustomers()" style="width:100%; padding:10px; font-size:15px;">⚡ 批量快速添加</button>
             <div id="quickAddResult" style="display:none; margin-top:10px;"></div>
@@ -405,7 +405,7 @@
                 <button class="btn btn-sm" style="background:#9c27b0;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;" onclick="toggleAdvancedSearch()">🔍 高级</button>
                 <button class="btn btn-sm" style="background:#e91e63;color:white;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;margin-left:8px;" onclick="showCleanDuplicates()">🧹 批量删除</button>
             </div>
-            <div id="advancedSearchPanel" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;background:#f8f9ff;padding:12px;border-radius:8px;border:1px solid #d0d5ff;">
+            <div id="advancedSearchPanel" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;background:#fdf2f2;padding:12px;border-radius:8px;border:1px solid #e8b0b0;">
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;width:100%;">
                     <div><label style="font-size:12px;color:#888;display:block;">归属地</label><select id="searchRegion" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:white;min-width:120px;"><option value="">全部</option></select></div>
                     <div><label style="font-size:12px;color:#888;display:block;">开始日期</label><input type="date" id="searchDateFrom" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
@@ -459,7 +459,7 @@
         <div class="card">
             <h2>查重统计</h2>
             <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
-                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日查重</div></div>
+                <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日查重</div></div>
                 <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalChecks">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总查重次数</div></div>
                 <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#fa709a,#fee140);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTodayDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">今日重复</div></div>
                 <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#ff5858,#f09819);color:white;padding:18px;border-radius:12px;text-align:center;"><div style="font-size:28px;font-weight:700;" id="csTotalDup">0</div><div style="font-size:13px;opacity:0.8;margin-top:4px;">总重复数</div></div>
@@ -536,7 +536,7 @@
         <div class="card">
             <h2>导出数据</h2>
             <p style="color:#888; font-size:14px; margin-bottom:16px;">将客户数据导出为 Excel 文件（.xlsx 格式），可选筛选条件</p>
-            <div class="form-row" style="margin-bottom:16px;background:#f8f9ff;padding:14px;border-radius:8px;border:1px solid #e0e5ff;">
+            <div class="form-row" style="margin-bottom:16px;background:#fdf2f2;padding:14px;border-radius:8px;border:1px solid #f0d0d0;">
                 <div class="form-group"><label>开始日期</label><input type="date" id="exportDateFrom"></div>
                 <div class="form-group"><label>结束日期</label><input type="date" id="exportDateTo"></div>
                 <div class="form-group"><label>归属地</label><select id="exportRegion"><option value="">全部</option></select></div>
@@ -835,7 +835,7 @@
             pg.appendChild(nx);
             var js = document.createElement('span');
             js.style.cssText = 'display:flex;align-items:center;gap:4px;margin-left:6px;border:none;cursor:default;';
-            js.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> <button style="padding:4px 8px;border:1px solid #667eea;background:#667eea;color:white;border-radius:4px;cursor:pointer;font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px;color:#888;margin-left:2px;">共' + totalPages + '页</span>';
+            js.innerHTML = '<input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" placeholder="页" style="width:50px;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> <button style="padding:4px 8px;border:1px solid #e74c3c;background:#e74c3c;color:white;border-radius:4px;cursor:pointer;font-size:12px;" onclick="jumpToPage()">跳转</button> <span style="font-size:11px;color:#888;margin-left:2px;">共' + totalPages + '页</span>';
             pg.appendChild(js);
             updateBatchDeleteBtn();
         }
@@ -1166,7 +1166,7 @@
                 <div class="result-card">
                     <h3 style="margin-bottom:8px;">查重结果</h3>
                     <div class="result-row"><span class="result-label">${c1.name} (${c1.phone||'-'})</span><span>VS</span><span class="result-label">${c2.name} (${c2.phone||'-'})</span></div>
-                    <div class="result-row" style="border-top:1px solid #e0e5ff; padding-top:12px; margin-top:8px;">
+                    <div class="result-row" style="border-top:1px solid #f0d0d0; padding-top:12px; margin-top:8px;">
                         <span class="result-value">Jaccard: ${data.jaccard}%</span>
                         <span class="result-value">SimHash: ${data.simhash}%</span>
                     </div>
@@ -1274,8 +1274,8 @@
                         datasets: [{
                             label: '新增客户',
                             data: counts,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102,126,234,0.1)',
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231,76,60,0.1)',
                             fill: true,
                             tension: 0.3,
                             pointRadius: 2
@@ -1301,8 +1301,8 @@
                         datasets: [{
                             label: '查重次数',
                             data: checkCounts,
-                            backgroundColor: 'rgba(102,126,234,0.6)',
-                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(231,76,60,0.6)',
+                            borderColor: '#e74c3c',
                             borderWidth: 1
                         }]
                     },
@@ -1560,7 +1560,7 @@
                     var tr = d.weekly_trend || [];
                     window._checkTrendChart = new Chart(ctx, {
                         type:'line',
-                        data:{labels:tr.map(function(x){return x.date.slice(5);}),datasets:[{label:'查重次数',data:tr.map(function(x){return x.count;}),borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.1)',fill:true,tension:0.3}]},
+                        data:{labels:tr.map(function(x){return x.date.slice(5);}),datasets:[{label:'查重次数',data:tr.map(function(x){return x.count;}),borderColor:'#e74c3c',backgroundColor:'rgba(231,76,60,0.1)',fill:true,tension:0.3}]},
                         options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
                     });
                 }
@@ -1576,7 +1576,7 @@
                 for (var i = 0; i < entries.length; i++) {
                     var arr = entries[i];
                     var pct = Math.round(arr[1]/max*100);
-                    html += '<div style="margin:6px 0;"><span style="font-size:13px;min-width:80px;display:inline-block;">' + arr[0] + '</span><div style="display:inline-block;width:60%;height:20px;background:#e8e8e8;border-radius:10px;margin:0 8px;vertical-align:middle;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:10px;text-align:right;line-height:20px;color:#fff;font-size:11px;padding-right:6px;box-sizing:border-box;">' + arr[1] + '</div></div><span style="font-size:11px;color:#888;">' + Math.round(arr[1]/data.total_with_region*100) + '%</span></div>';
+                    html += '<div style="margin:6px 0;"><span style="font-size:13px;min-width:80px;display:inline-block;">' + arr[0] + '</span><div style="display:inline-block;width:60%;height:20px;background:#e8e8e8;border-radius:10px;margin:0 8px;vertical-align:middle;"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#e74c3c,#c0392b);border-radius:10px;text-align:right;line-height:20px;color:#fff;font-size:11px;padding-right:6px;box-sizing:border-box;">' + arr[1] + '</div></div><span style="font-size:11px;color:#888;">' + Math.round(arr[1]/data.total_with_region*100) + '%</span></div>';
                 }
                 html += '</div>';
                 c.innerHTML = html;
@@ -1593,10 +1593,10 @@
                     var e = ce[k];
                     var pt = data.coords[e[0]];
                     var r = Math.max(8, Math.sqrt(e[1]/mxc) * 35);
-                    var mk = L.circleMarker([pt.lat,pt.lng],{radius:r,fillColor:'#667eea',color:'#fff',weight:2,fillOpacity:0.65}).addTo(map);
+                    var mk = L.circleMarker([pt.lat,pt.lng],{radius:r,fillColor:'#e74c3c',color:'#fff',weight:2,fillOpacity:0.65}).addTo(map);
                     var lb = e[1] >= 10000 ? (e[1]/10000).toFixed(1) + '万' : e[1].toLocaleString();
                     mk.bindTooltip('<div style="text-align:center;font-weight:bold;font-size:11px;">'+e[0]+'<br>'+lb+'</div>',{permanent:true,direction:'center',className:'map-label'});
-                    mk.bindPopup('<strong>'+e[0]+'</strong><br>客户: <strong style="color:#667eea;">'+e[1].toLocaleString()+'</strong> ('+Math.round(e[1]/data.total_with_region*100)+'%)');
+                    mk.bindPopup('<strong>'+e[0]+'</strong><br>客户: <strong style="color:#e74c3c;">'+e[1].toLocaleString()+'</strong> ('+Math.round(e[1]/data.total_with_region*100)+'%)');
                 }
                 var bl = L.latLngBounds([]);
                 for (var l = 0; l < ce.length; l++) { bl.extend([data.coords[ce[l][0]].lat, data.coords[ce[l][0]].lng]); }
