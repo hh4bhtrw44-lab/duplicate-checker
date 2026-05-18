@@ -1040,7 +1040,7 @@ def api_phone_lookup():
 
         # Try to detect - try various countries
         for test in [clean_phone_with_plus, clean_phone]:
-            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN"]:
+            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN", "UZ", "KG", "KZ"]:
                 try:
                     p = phonenumbers.parse(test, cc)
                     if phonenumbers.is_valid_number(p):
