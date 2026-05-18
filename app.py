@@ -119,6 +119,18 @@ def init_db():
                   ('admin', hashlib.sha256('admin123'.encode()).hexdigest(), 'admin'))
     except sqlite3.IntegrityError:
         pass
+    # add db indexes
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)",
+        "CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)",
+        "CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_customers_phone_region ON customers(phone_region)",
+        "CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(company)",
+    ]:
+        try:
+            c.execute(idx_sql)
+        except:
+            pass
     conn.commit()
     conn.close()
 
@@ -346,9 +358,6 @@ def clean_phone(phone):
         return phone
     return re.sub(r'[\s\+\-\(\)]', '', phone)
 
-import phonenumbers
-from phonenumbers import geocoder
-
 def detect_phone_region(phone):
     """检测号码归属地，返回'国家 城市'格式的中文描述"""
     if not phone:
@@ -549,8 +558,6 @@ def api_quick_add():
             name = ' '.join(name_candidates) if name_candidates else ''
             phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
 
-        name = ' '.join(name_candidates) if name_candidates else ''
-        phone = clean_phone(' '.join(phone_candidates)) if phone_candidates else ''
 
         if not name and not phone:
             continue
