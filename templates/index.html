@@ -1465,6 +1465,23 @@
         async function exportExcel() {
             showDataPasswordModal('exportExcel', null);
         }
+        async function loadExportRegions() {
+            try {
+                var res = await fetch("/api/analytics/region-map");
+                var d = await res.json();
+                var sel = document.getElementById("exportRegion");
+                if (!sel) return;
+                sel.innerHTML = '<option value="">全部</option>';
+                var entries = Object.entries(d.regions || {}).sort(function(a,b){return b[1]-a[1];});
+                for (var i = 0; i < entries.length; i++) {
+                    var opt = document.createElement("option");
+                    opt.value = entries[i][0];
+                    opt.textContent = entries[i][0] + " (" + entries[i][1] + ")";
+                    sel.appendChild(opt);
+                }
+            } catch {}
+        }
+
         async function exportExcelConfirm() {
             const pwd = document.getElementById('dataPasswordInput').value;
             var url = '/api/export/excel?pwd=' + encodeURIComponent(pwd);
