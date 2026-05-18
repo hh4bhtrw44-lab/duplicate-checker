@@ -610,7 +610,20 @@ def api_detect_regions():
             parsed = phonenumbers.parse('+' + phone.replace('+', ''), None)
             region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
-            pass
+            try:
+                digits_only = re.sub(r"[^0-9]", "", phone)
+                if len(digits_only) >= 7:
+                    for cc_ in ["UZ", "KG", "KZ", "US", "GB", "RU"]:
+                        try:
+                            p2 = phonenumbers.parse("+" + digits_only, cc_)
+                            if phonenumbers.is_valid_number(p2):
+                                parsed = p2
+                                region = geocoder.description_for_number(parsed, "zh") or geocoder.country_name_for_number(parsed, "zh") or ""
+                                break
+                        except:
+                            pass
+            except:
+                pass
         if region:
             db.execute('UPDATE customers SET phone_region=? WHERE id=?', (region, r['id']))
             updated += 1
@@ -1040,7 +1053,7 @@ def api_phone_lookup():
 
         # Try to detect - try various countries
         for test in [clean_phone_with_plus, clean_phone]:
-            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN", "UZ", "KG", "KZ"]:
+            for cc in [None, "CN", "US", "GB", "JP", "KR", "SG", "TW", "HK", "TH", "MY", "VN", "PH", "ID", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "IN", "UZ", "KG", "KZ", "UZ", "KG", "KZ"]:
                 try:
                     p = phonenumbers.parse(test, cc)
                     if phonenumbers.is_valid_number(p):
