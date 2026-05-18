@@ -1085,10 +1085,17 @@
         }
         async function deleteCustomerConfirm(id) {
             try {
-                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                const pwd = document.getElementById('dataPasswordInput').value;
+                const res = await fetch(`/api/customers/${id}`, {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({pwd: pwd})
+                });
                 if ((await res.json()).ok) {
                     showToast('删除成功');
                     loadCustomers(currentPage);
+                } else {
+                    showToast('密码验证失败', 'error');
                 }
             } catch { showToast('网络错误', 'error'); }
         }
