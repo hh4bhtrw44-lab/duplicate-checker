@@ -8,7 +8,16 @@ import hashlib
 import sqlite3
 import phonenumbers
 from phonenumbers import geocoder, carrier
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# 东八区时间 (北京时间)
+BJ_TZ = timezone(timedelta(hours=8))
+def bj_now():
+    return datetime.now(BJ_TZ)
+def bj_now_str():
+    return bj_now().strftime("%Y-%m-%d %H:%M:%S")
+def bj_date_str():
+    return bj_now().strftime("%Y-%m-%d")
 from functools import wraps
 from flask import Flask, request, render_template, jsonify, session, redirect, url_for, g, send_file
 import jieba
@@ -359,11 +368,11 @@ def clean_phone(phone):
     return re.sub(r'[\s\+\-\(\)]', '', phone)
 
 def detect_phone_region(phone):
-    """检测号码归属地，返回'国家 城市'格式的中文描述"""
+    """检测号码归属地，返回中文描述"""
     if not phone:
         return ''
     try:
-        clean = phone.replace('+', '')
+        clean = phone.replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
         # 先尝试解析带+号的完整号码
         try:
             parsed = phonenumbers.parse('+' + clean, None)
@@ -372,41 +381,53 @@ def detect_phone_region(phone):
                 return desc
         except:
             pass
-        # 如果没有+号前缀，尝试不同国家默认区域
-        # 中国大陆手机号
+        # 中国大陆手机号 (11位, 1开头)
         if len(clean) == 11 and clean.startswith('1'):
-            parsed = phonenumbers.parse(clean, 'CN')
-            desc = geocoder.description_for_number(parsed, 'zh')
-            if desc:
-                return desc
-        # 香港8位号码
+            try:
+                parsed = phonenumbers.parse(clean, "CN")
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+            except:
+                pass
+        # 香港 8位
         if len(clean) == 8:
-            parsed = phonenumbers.parse(clean, 'HK')
-            desc = geocoder.description_for_number(parsed, 'zh')
-            if desc:
-                return desc
-        # 台湾
+            try:
+                parsed = phonenumbers.parse(clean, "HK")
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+            except:
+                pass
+        # 台湾 9位 9开头
         if len(clean) == 9 and clean.startswith('9'):
-            parsed = phonenumbers.parse(clean, 'TW')
-            desc = geocoder.description_for_number(parsed, 'zh')
-            if desc:
-                return desc
-        # 美国/加拿大10位号码
+            try:
+                parsed = phonenumbers.parse(clean, "TW")
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+            except:
+                pass
+        # 美国/加拿大 10位
         if len(clean) == 10:
-            parsed = phonenumbers.parse(clean, 'US')
-            desc = geocoder.description_for_number(parsed, 'zh')
-            if desc:
-                return desc
+            try:
+                parsed = phonenumbers.parse(clean, "US")
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+            except:
+                pass
         # 最后尝试作为中国号码
-        parsed = phonenumbers.parse(clean, 'CN')
-        desc = geocoder.description_for_number(parsed, 'zh')
-        if desc:
-            return desc
-        country = geocoder.country_name_for_number(parsed, 'zh')
-        return country or ''
+        try:
+            parsed = phonenumbers.parse(clean, "CN")
+            country = geocoder.country_name_for_number(parsed, 'zh')
+            if country:
+                return country
+        except:
+            pass
+        return ''
     except:
         return ''
-
 @app.route('/api/customers/fix-data', methods=['POST'])
 @login_required
 def api_fix_customer_data():
@@ -728,7 +749,7 @@ def api_update_customer(id):
             region = geocoder.description_for_number(parsed, 'zh') or geocoder.country_name_for_number(parsed, 'zh') or ''
         except:
             pass
-    db.execute("UPDATE customers SET name=?, phone=?, email=?, company=?, notes=?, content=?, phone_region=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+    db.execute("UPDATE customers SET name=?, phone=?, email=?, company=?, notes=?, content=?, phone_region=?, updated_at=bj_now_str() WHERE id=?",
                (name, phone, email, company, notes, content, region, id))
     db.commit()
     return jsonify({"ok": True})
@@ -857,7 +878,7 @@ def api_export_excel():
     wb.save(output)
     output.seek(0)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = bj_now().strftime("%Y%m%d_%H%M%S")
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1120,15 +1141,15 @@ def api_analytics_overview():
     total_customers = db.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
 
     # 今日新增
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = bj_now().strftime("%Y-%m-%d")
     today_new = db.execute("SELECT COUNT(*) FROM customers WHERE DATE(created_at) = ?", (today,)).fetchone()[0]
 
     # 本周新增
-    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    week_ago = (bj_now() - timedelta(days=7)).strftime("%Y-%m-%d")
     week_new = db.execute("SELECT COUNT(*) FROM customers WHERE DATE(created_at) >= ?", (week_ago,)).fetchone()[0]
 
     # 本月新增
-    month_start = datetime.now().strftime("%Y-%m-01")
+    month_start = bj_now().strftime("%Y-%m-01")
     month_new = db.execute("SELECT COUNT(*) FROM customers WHERE DATE(created_at) >= ?", (month_start,)).fetchone()[0]
 
     # 今日查重
@@ -1149,14 +1170,14 @@ def api_analytics_overview():
     # 最近30天每日新增趋势
     daily_new = []
     for i in range(29, -1, -1):
-        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        day = (bj_now() - timedelta(days=i)).strftime("%Y-%m-%d")
         count = db.execute("SELECT COUNT(*) FROM customers WHERE DATE(created_at) = ?", (day,)).fetchone()[0]
         daily_new.append({"date": day, "count": count})
 
     # 最近30天查重趋势
     daily_checks = []
     for i in range(29, -1, -1):
-        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        day = (bj_now() - timedelta(days=i)).strftime("%Y-%m-%d")
         count = db.execute("SELECT COUNT(*) FROM check_history WHERE DATE(checked_at) = ?", (day,)).fetchone()[0]
         daily_checks.append({"date": day, "count": count})
 
@@ -1224,7 +1245,7 @@ def api_check():
     result = check_duplicate(customer_text, compare_text)
     db.execute("INSERT INTO check_history (customer1_id, similarity, level) VALUES (?, ?, ?)",
                (customer_id, result['overall'], result['level']))
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = bj_now().strftime("%Y-%m-%d")
     dup_count = 1 if result['overall'] >= 60 else 0
     db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
                (today_date, 'single', dup_count, 1))
@@ -1259,7 +1280,7 @@ def api_check_between():
     result = check_duplicate(text1, text2)
     db.execute("INSERT INTO check_history (customer1_id, customer2_id, similarity, level) VALUES (?, ?, ?, ?)",
                (id1, id2, result['overall'], result['level']))
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = bj_now().strftime("%Y-%m-%d")
     dup_count = 1 if result['overall'] >= 60 else 0
     db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
                (today_date, 'between', dup_count, 1))
@@ -1300,7 +1321,7 @@ def api_batch_check():
         })
 
     results.sort(key=lambda x: x['similarity'], reverse=True)
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = bj_now().strftime("%Y-%m-%d")
     high_dup = sum(1 for r in results if r['similarity'] >= 60)
     db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
                (today_date, 'batch', high_dup, len(results)))
@@ -1356,7 +1377,7 @@ def api_quick_check():
         })
 
     # Log to check_logs
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = bj_now().strftime("%Y-%m-%d")
     dup_count = sum(1 for r in results if '姓名' in r.get('match_fields', []) or '电话' in r.get('match_fields', []))
     db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
                (today_date, 'quick', dup_count, len(results)))
@@ -1366,7 +1387,7 @@ def api_quick_check():
         'keyword': keyword,
         'total': len(results),
         'results': results,
-        'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        'checked_at': bj_now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
 
@@ -1415,7 +1436,7 @@ def api_quick_check_all():
             })
 
     # Log to check_logs
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = bj_now().strftime("%Y-%m-%d")
     db.execute("INSERT INTO check_logs (check_date, check_type, duplicate_count, total_checked) VALUES (?, ?, ?, ?)",
                (today_date, 'batch_quick', len(all_results), len(all_results)))
     db.commit()
@@ -1424,7 +1445,7 @@ def api_quick_check_all():
         'keywords_count': len(lines),
         'total': len(all_results),
         'results': all_results,
-        'checked_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        'checked_at': bj_now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
 
@@ -1661,7 +1682,7 @@ def api_region_map():
 @login_required
 def api_check_stats():
     db = get_db()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = bj_now().strftime("%Y-%m-%d")
     today_checks = db.execute("SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?", (today,)).fetchone()[0]
     total_checks = db.execute("SELECT COUNT(*) FROM check_logs").fetchone()[0]
     today_dup = db.execute("SELECT COALESCE(SUM(duplicate_count), 0) FROM check_logs WHERE check_date = ?", (today,)).fetchone()[0]
@@ -1670,7 +1691,7 @@ def api_check_stats():
     today_count = db.execute("SELECT COUNT(*) FROM check_logs WHERE check_date = ?", (today,)).fetchone()[0]
     weekly_trend = []
     for i in range(6, -1, -1):
-        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        day = (bj_now() - timedelta(days=i)).strftime("%Y-%m-%d")
         count = db.execute("SELECT COALESCE(SUM(total_checked), 0) FROM check_logs WHERE check_date = ?", (day,)).fetchone()[0]
         weekly_trend.append({"date": day, "count": count})
     return jsonify({
