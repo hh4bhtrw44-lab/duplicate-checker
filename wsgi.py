@@ -1,3 +1,5 @@
+import time_fix
+time_fix.fix_old_timestamps()
 #!/usr/bin/env python3
 """Gunicorn WSGI 入口 - 带 Ngrok 隧道自动启动"""
 from app import app
