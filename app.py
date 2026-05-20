@@ -417,6 +417,29 @@ def detect_phone_region(phone):
                     return desc
             except:
                 pass
+        # 俄罗斯/哈萨克斯坦 (+7国际码, 11位, 7开头)
+        if len(clean) == 11 and clean.startswith('7'):
+            try:
+                parsed = phonenumbers.parse(clean, "RU")
+                country = geocoder.country_name_for_number(parsed, 'zh')
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+                if country:
+                    return country
+            except:
+                pass
+            try:
+                parsed = phonenumbers.parse(clean, "KZ")
+                country = geocoder.country_name_for_number(parsed, 'zh')
+                desc = geocoder.description_for_number(parsed, 'zh')
+                if desc:
+                    return desc
+                if country:
+                    return country
+            except:
+                pass
+
         # 最后尝试作为中国号码
         try:
             parsed = phonenumbers.parse(clean, "CN")
