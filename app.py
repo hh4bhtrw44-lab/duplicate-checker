@@ -704,15 +704,15 @@ def api_add_customer():
             duplicates.append({"id": r["id"], "name": r["name"], "phone": r["phone"], "company": r["company"], "field": "电话", "created_at": r["created_at"]})
 
     if duplicates:
-        # 去重 2：如果勾选了 force_add，强制添加
-        if request.json.get('force_add', False):
-            pass
-        else:
+        # 手动添加时重复也添加，只记录不拦截
+        # 批量导入时保持拦截
+        if request.json.get('batch_import', False):
             return jsonify({
                 "duplicate_warning": True,
                 "duplicates": duplicates,
                 "message": f"发现 {len(duplicates)} 个可能重复的客户"
             }), 409
+        # 手动添加：自动强制添加，返回重复信息但不拦截
 
     # 检测号码归属地
     region = ''
